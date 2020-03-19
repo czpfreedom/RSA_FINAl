@@ -20,194 +20,173 @@
 #endif
 
 
-BN_WORD* BN_WORD_new(int dmax){
+
+__host__ BN_WORD* BN_WORD_new(int dmax){
     BN_WORD *a;
-    a=new BN_WORD();
-    cudaMallocManaged((void**)&(a->dmax),sizeof(int));
-    cudaMallocManaged((void**)&(a->carry),sizeof(int));
-    *(a->dmax)=dmax;
-    *(a->carry)=0;
-    cudaMallocManaged((void**)&(a->d),*(a->dmax)*sizeof(BN_ULONG));
+    cudaMallocManaged((void**)&(a),sizeof(BN_WORD));
+    a->dmax=dmax;
+    a->carry=0;
+    cudaMallocManaged((void**)&(a->d),(a->dmax)*sizeof(BN_ULONG));
     return a;
 }
 
-int BN_WORD_free(BN_WORD *a){
-    cudaFree(a->dmax);
-    cudaFree(a->carry);
+__host__ void BN_WORD_free(BN_WORD *a){
     cudaFree(a->d);
-    delete(a);
-    return 0;
+    cudaFree(a);
 }
 
-__host__ __device__ int BN_WORD_setzero(BN_WORD *a){
-    *(a->carry)=0;
-    for(int i=0;i<*a->dmax;i++){
+__device__ BN_WORD* BN_WORD_new_device(int dmax){
+    BN_WORD *a;
+    a=(BN_WORD*)malloc(sizeof(BN_WORD));
+    a->dmax=dmax;
+    a->carry=0;
+    a->d=(BN_ULONG *)malloc((a->dmax)*sizeof(BN_ULONG));
+    return a;
+}
+
+__device__ void BN_WORD_free_device(BN_WORD *a){
+    free(a->d);
+    free(a);
+}
+
+
+__host__ __device__ void BN_WORD_setzero(BN_WORD *a){
+    a->carry=0;
+    for(int i=0;i<a->dmax;i++){
         a->d[i]=0;
     }
-    return 0;
 }
 
-__host__ __device__ int BN_WORD_setone(BN_WORD *a){
-    *(a->carry)=0;
+__host__ __device__ void BN_WORD_setone(BN_WORD *a){
+    a->carry=0;
     a->d[0]=1;
-    for(int i=1;i<*a->dmax;i++){
+    for(int i=1;i<a->dmax;i++){
         a->d[i]=0;
+    }
+}
+
+
+__host__ __device__ int BN_WORD_copy(BN_WORD *a,BN_WORD *b){
+    if(a->dmax!=b->dmax){
+        return -1;
+    }
+    b->carry=a->carry;
+    for(int i=0;i<a->dmax;i++){
+        b->d[i]=a->d[i];
     }
     return 0;
 }
-
-
-/*int BN_WORD_copy(BN_WORD *a,BN_WORD *b){
-    *(b->carry)=*(a->carry);
-    if(*(a->dmax)==*(b->dmax)){
-        ;
-    }
-    else {
-        *(b->dmax)=*(a->dmax);
-        cudaFree((b->d));
-        cudaMallocManaged((void **)&(b->d),*(b->dmax)*sizeof(BN_ULONG));
-        for(int i=0;i<*(b->dmax);i++){
-            b->d[i]=a->d[i];
-        }
-    }
-}
-*/
 
 __host__ __device__ void BN_WORD_print(BN_WORD *a){
-    printf("dmax:%d\n",*(a->dmax));
-    printf("carry:%lx\n",*(a->carry));
-    for(int i=*(a->dmax)-1;i>=0;i--){
+    printf("dmax:%d\n",a->dmax);
+    printf("carry:%lx\n",a->carry);
+    for(int i=(a->dmax)-1;i>=0;i--){
         printf("%lx,",a->d[i]);
     }
     printf("\n");
 }
 
-__host__ __device__ void BN_WORD_cmp(BN_WORD *a, BN_WORD *b, int *return_value){
-    *return_value=0;
-    if ((*(a->carry)!=0)||(*(b->carry)!=0)){
-        *return_value=-1;
-        return;
+__host__ __device__ int BN_WORD_cmp(BN_WORD *a, BN_WORD *b){
+    if (((a->carry)!=0)||((b->carry)!=0)){
+        return -2;
     }
-    if(*(a->dmax)!=*(b->dmax)){
-        *return_value=-2;
-        return ;
+    if((a->dmax)!=(b->dmax)){
+        return -1;
     }
-    for(int i=*(a->dmax)-1;i>=0;i--){
+    for(int i=(a->dmax)-1;i>=0;i--){
         if(a->d[i]>b->d[i]){
-            *return_value=1;
-            return;
+            return 1;
         }
         if(a->d[i]<b->d[i]){
-            *return_value=2;
-            return;
+            return 2;
         }
     }
-    *return_value=0;
-    return ;
+    return 0;
 }
 
-__host__ __device__ void BN_WORD_left_shift(BN_WORD *a,BN_WORD *b,int words,int *return_value){
-    if(*(a->dmax)<words){
-        *return_value=-1;
-	return;
+__host__ __device__ int BN_WORD_left_shift(BN_WORD *a,BN_WORD *b,int words){
+    if((a->dmax)!=(b->dmax)){
+        return -1;
     }
-    if(*(a->dmax)!=*(b->dmax)){
-        *return_value=-2;
-	return;
+    if((a->dmax)<words){
+        return -3;
     }
-    *(b->carry)=*(a->carry);
-    *(b->dmax)=*(a->dmax);
-    for(int i=*(a->dmax)-1;i>=words;i--){
+    b->carry=a->carry;
+    for(int i=(a->dmax)-1;i>=words;i--){
         b->d[i]=a->d[i-words];
     }
     for(int i=words-1;i>=0;i--){
         b->d[i]=0;
     }
-    *return_value=0;
-    return ;
+    return 0;
 }
 
 
-
-__host__ __device__ void BN_WORD_left_shift_bits(BN_WORD *a,BN_WORD *b,int bits,int *return_value){
+__host__ __device__ int BN_WORD_left_shift_bits(BN_WORD *a,BN_WORD *b,int bits){
+    if((a->dmax)!=(b->dmax)){
+        return -1;
+    }
     if(bits>sizeof(BN_ULONG)*8){
-        *return_value=-1;
-	return;
+        return -3;
     }
-    if(*(a->dmax)!=*(b->dmax)){
-        *return_value=-2;
-        return;
-    }
-    *(b->carry)=*(a->carry);
-    *(b->dmax)=*(a->dmax);
+    b->carry=a->carry;
     b->d[0]=a->d[0]<<bits;
-    for (int i=1;i<*(a->dmax);i++){
+    for (int i=1;i<a->dmax;i++){
         b->d[i]=(a->d[i]<<bits)+(a->d[i-1])/((BN_ULONG)1<<(sizeof(BN_ULONG)*8-bits));
     }
-    *return_value=0;
-    return;
+    return 0;
 }
 
 
-
-__host__ __device__ void BN_WORD_right_shift(BN_WORD *a,BN_WORD *b,int words, int *return_value){
-    if(*(a->dmax)<words){
-        *return_value=-1;
-        return;
+__host__ __device__ int BN_WORD_right_shift(BN_WORD *a,BN_WORD *b,int words){
+    if((a->dmax)!=(b->dmax)){
+        return -1;
     }
-    if(*(a->dmax)!=*(b->dmax)){
-        *return_value=-2;
-        return;
+    if((a->dmax)<words){
+        return -3;
     }
-    for(int i=0;i<*(a->dmax)-words;i++){
+    b->carry=a->carry;
+    for(int i=0;i<a->dmax-words;i++){
         b->d[i]=a->d[i+words];
     }
-    for(int i=*(a->dmax)-words;i<*(a->dmax);i++){
+    for(int i=a->dmax-words;i<a->dmax;i++){
         b->d[i]=0;
     }
-    *return_value=0;
-    return;
+    return 0;
 }
 
-__host__ __device__ void BN_WORD_right_shift_bits(BN_WORD *a,BN_WORD *b,int bits,int *return_value){
+
+
+__host__ __device__ int BN_WORD_right_shift_bits(BN_WORD *a,BN_WORD *b,int bits){
+    if((a->dmax)!=(b->dmax)){
+        return -1;
+    }
     if(bits>sizeof(BN_ULONG)*8){
-        *return_value=-1;
-        return;
+        return -3;
     }
-    if(*(a->dmax)!=*(b->dmax)){
-        *return_value=-2;
-        return;
-    }
-    *(b->carry)=*(a->carry);
-    *(b->dmax)=*(a->dmax);
-    for (int i=0;i<*(a->dmax)-1;i++){
+    b->carry=a->carry;
+    for (int i=0;i<a->dmax-1;i++){
         b->d[i]=(a->d[i])/((BN_ULONG)1<<bits)+((a->d[i+1])<<(sizeof(BN_ULONG)*8-bits));
-//	printf("%lx\n",(a->d[i])/(1<<bits));
-//	printf("%lx\n",(a->d[i+1])<<(sizeof(BN_ULONG)*8-bits));
     }
-    b->d[*(a->dmax)-1]=(a->d[*(a->dmax)-1])/((BN_ULONG)1<<bits);
-    *return_value=0;
-    return;
+    b->d[a->dmax-1]=(a->d[a->dmax-1])/((BN_ULONG)1<<bits);
+    return 0;
 }
 
 
 
-__host__ __device__ void BN_WORD_add(BN_WORD *a, BN_WORD *b, BN_WORD *result, int *return_value){
+__host__ __device__ int BN_WORD_add(BN_WORD *a, BN_WORD *b, BN_WORD *result){
     BN_ULONG carry2=0;
     BN_ULONG carry1=0;
     BN_ULONG mid_value;
-    if ((*(a->carry)!=0)||(*(b->carry)!=0)){
-        *return_value=-1;
-	return ;
+    if (((a->carry)!=0)||((b->carry)!=0)){
+        return -2;
     }
-    if(*(a->dmax)!=*(b->dmax)){
-	*return_value=-2;
-        return ;
+    if((a->dmax!=b->dmax)||(a->dmax!=result->dmax)){
+        return -1;
     }
-    *(result->dmax)=*(a->dmax);
-    for (int i=0;i<*(a->dmax);i++){
-	carry2=carry1;
-	carry1=0;
+    for (int i=0;i<a->dmax;i++){
+        carry2=carry1;
+        carry1=0;
         mid_value=(a->d[i]+carry2)&BN_MASK2L;
         if(mid_value<a->d[i]){
             carry1=1;
@@ -218,40 +197,36 @@ __host__ __device__ void BN_WORD_add(BN_WORD *a, BN_WORD *b, BN_WORD *result, in
         }
         result->d[i]=mid_value;
     }
-    *(result->carry)=carry1;
-    *return_value=0;
-    return ;
+    result->carry=carry1;
+    return 0;
 }
 
-__host__ __device__ void BN_WORD_sub(BN_WORD *a, BN_WORD *b, BN_WORD *result, int *cmp_return_value,int *return_value){
+
+__host__ __device__ int BN_WORD_sub(BN_WORD *a, BN_WORD *b, BN_WORD *result){
     BN_ULONG mid_value1, mid_value;
     BN_ULONG carry1,carry2;
-    BN_WORD_cmp(a,b,cmp_return_value);
-    if(*(cmp_return_value)==-1){
-        *return_value=-1;
-        return;
+    int cmp=BN_WORD_cmp(a,b);
+    if(cmp==-1){
+        return -1;
     }
-    if(*(cmp_return_value)==-2){
-        *return_value=-2;
-	return;
+    if(cmp==-2){
+        return -2;
     }
-    if(*(cmp_return_value)==2){
-        *return_value=-3;
-	return;
+    if(cmp==2){
+        return -4;
     }
-    if(*(cmp_return_value)==0){
-	*return_value=0;
+    if(cmp==0){
         BN_WORD_setzero(result);
-	return;
+	return 0;
     }
-    if(*(cmp_return_value)==1){
-        *(result->dmax)=*(a->dmax);
-	*(result->carry)=0;
+    if(cmp==1){
+        result->dmax=a->dmax;
+        result->carry=0;
         carry2=0;
-	carry1=0;
-        for(int i=0;i<*(a->dmax);i++){
-	    carry2=carry1;
-	    carry1=0;
+        carry1=0;
+        for(int i=0;i<a->dmax;i++){
+            carry2=carry1;
+            carry1=0;
             mid_value1=(a->d[i]-carry2)&BN_MASK2L;
             if(mid_value1>a->d[i]){
                 carry1=1;
@@ -262,119 +237,134 @@ __host__ __device__ void BN_WORD_sub(BN_WORD *a, BN_WORD *b, BN_WORD *result, in
             }
             result->d[i]=mid_value;
         }
-        *return_value=0;
+	return 0;
     }
+    return 0;
 }
 
+
+
+
 __host__ __device__ void BN_WORD_high (BN_WORD *a, BN_WORD *b){
-    *(b->dmax)=*(a->dmax);
-    *(b->carry)=*(a->dmax);
-    for(int i=0;i<*(a->dmax);i++){
+    b->dmax=a->dmax;
+    b->carry=a->carry;
+    for(int i=0;i<a->dmax;i++){
         b->d[i]=(a->d[i])/((BN_ULONG)1<<sizeof(BN_ULONG)*4);
     }	
 }
 
 __host__ __device__ void BN_WORD_low (BN_WORD *a, BN_WORD *b){
-    *(b->dmax)=*(a->dmax);
-    *(b->carry)=*(a->dmax);
-    for(int i=0;i<*(a->dmax);i++){
+    b->dmax=a->dmax;
+    b->carry=a->dmax;
+    for(int i=0;i<a->dmax;i++){
         b->d[i]=(a->d[i])&BN_MASK2l;
     }
 }
 
-__host__ __device__ void BN_WORD_mul_half(BN_WORD *a, BN_WORD *b, BN_WORD *result, BN_WORD *mid_value1,
-	       	BN_WORD *mid_value2,int *add_return_value){
-    int dmax=*(a->dmax);
+ __device__ int BN_WORD_mul_half(BN_WORD *a, BN_WORD *b, BN_WORD *result){
+    BN_WORD *mid_value;
+    BN_WORD *temp_result;
+    int dmax=a->dmax;
+    if((b->dmax!=dmax)||(result->dmax!=2*dmax)){
+        return -1;
+    }
+    mid_value=BN_WORD_new_device(dmax*2);
+    temp_result=BN_WORD_new_device(dmax*2);
     BN_WORD_setzero(result);
     for(int i=0;i<dmax;i++){
-	BN_WORD_setzero(mid_value1);
-	BN_WORD_setzero(mid_value2);
+	BN_WORD_setzero(mid_value);
+	BN_WORD_setzero(mid_value);
 	for(int j=0;j<dmax;j++){
-	    mid_value1->d[i+j]=(b->d[i])*(a->d[j]);
+	    mid_value->d[i+j]=(b->d[i])*(a->d[j]);
 	}
-	BN_WORD_add(result,mid_value1,mid_value2,add_return_value);
-	for(int j=0;j<dmax*2;j++){
-	    result->d[j]=mid_value2->d[j];
-	}
+	BN_WORD_add(result,mid_value,temp_result);
+	BN_WORD_copy(temp_result,result);
     }
+    BN_WORD_free_device(mid_value);
+    BN_WORD_free_device(temp_result);
+    return 0;
 }
 
-__host__ __device__ void BN_WORD_mul(BN_WORD *a, BN_WORD *b, BN_WORD *a_half, BN_WORD *b_half,BN_WORD *result,
-		BN_WORD *mid_value1,  BN_WORD *mid_value2, BN_WORD *mid_value3, BN_WORD *temp_result,
-		int *add_return_value, int *shift_return_value){
-    int dmax=*(a->dmax);
+__device__ int BN_WORD_mul(BN_WORD *a, BN_WORD *b, BN_WORD *result){
+    int dmax;
+    dmax=a->dmax;
+    if((b->dmax!=dmax)||(result->dmax!=2*dmax)){
+        return -1;
+    }
+    if((a->carry!=0)||(b->carry!=0)){
+        return -2;
+    }
+    BN_WORD *a_half, *b_half, *mid_value, *temp_result;
+    a_half=BN_WORD_new_device(dmax);
+    b_half=BN_WORD_new_device(dmax);
+    mid_value=BN_WORD_new_device(dmax*2);
+    temp_result=BN_WORD_new_device(dmax*2);
+
+    result->carry=0;
+
     BN_WORD_setzero(a_half);
     BN_WORD_setzero(b_half);
-    BN_WORD_setzero(mid_value1);
-    BN_WORD_setzero(mid_value2);
-    BN_WORD_setzero(mid_value3);
+    BN_WORD_setzero(mid_value);
     BN_WORD_setzero(temp_result);
     BN_WORD_low(a,a_half);
     BN_WORD_low(b,b_half);
-    BN_WORD_mul_half(a_half,b_half,mid_value3,mid_value1,mid_value2,add_return_value);
-    BN_WORD_add(result,mid_value3,temp_result,add_return_value);
-    for(int i=0;i<dmax*2;i++){
-        result->d[i]=temp_result->d[i];
-    }
 
+    BN_WORD_mul_half(a_half,b_half,mid_value);
+    BN_WORD_add(result,mid_value,temp_result);
+    BN_WORD_copy(temp_result,result);
 
     BN_WORD_setzero(a_half);
     BN_WORD_setzero(b_half);
-    BN_WORD_setzero(mid_value1);
-    BN_WORD_setzero(mid_value2);
-    BN_WORD_setzero(mid_value3);
+    BN_WORD_setzero(mid_value);
     BN_WORD_setzero(temp_result);
     BN_WORD_high(a,a_half);
     BN_WORD_low(b,b_half);
-    BN_WORD_mul_half(a_half,b_half,mid_value3,mid_value1,mid_value2,add_return_value);
-    BN_WORD_left_shift_bits(mid_value3,temp_result,sizeof(BN_ULONG)*4,shift_return_value);
-    for(int i=0;i<dmax*2;i++){
-        mid_value3->d[i]=temp_result->d[i];
-    }
+    BN_WORD_mul_half(a_half,b_half,mid_value);
+    BN_WORD_left_shift_bits(mid_value,temp_result,sizeof(BN_ULONG)*4);
+    BN_WORD_copy(temp_result,mid_value);
+    BN_WORD_setzero(temp_result);
+    BN_WORD_add(result,mid_value,temp_result);
+    BN_WORD_copy(temp_result,result);
 
-    BN_WORD_add(result,mid_value3,temp_result,add_return_value);
-    for(int i=0;i<dmax*2;i++){
-        result->d[i]=temp_result->d[i];
-    }
+
 
     BN_WORD_setzero(a_half);
     BN_WORD_setzero(b_half);
-    BN_WORD_setzero(mid_value1);
-    BN_WORD_setzero(mid_value2);
-    BN_WORD_setzero(mid_value3);
+    BN_WORD_setzero(mid_value);
     BN_WORD_setzero(temp_result);
     BN_WORD_low(a,a_half);
     BN_WORD_high(b,b_half);
-    BN_WORD_mul_half(a_half,b_half,mid_value3,mid_value1,mid_value2,add_return_value);
-    BN_WORD_left_shift_bits(mid_value3,temp_result,sizeof(BN_ULONG)*4,shift_return_value);
-    for(int i=0;i<dmax*2;i++){
-        mid_value3->d[i]=temp_result->d[i];
-    }
+    BN_WORD_mul_half(a_half,b_half,mid_value);
+    BN_WORD_left_shift_bits(mid_value,temp_result,sizeof(BN_ULONG)*4);
+    BN_WORD_copy(temp_result,mid_value);
+    BN_WORD_setzero(temp_result);
+    BN_WORD_add(result,mid_value,temp_result);
+    BN_WORD_copy(temp_result,result);
 
-    BN_WORD_add(result,mid_value3,temp_result,add_return_value);
-    for(int i=0;i<dmax*2;i++){
-        result->d[i]=temp_result->d[i];
-    }
 
     BN_WORD_setzero(a_half);
     BN_WORD_setzero(b_half);
-    BN_WORD_setzero(mid_value1);
-    BN_WORD_setzero(mid_value2);
-    BN_WORD_setzero(mid_value3);
+    BN_WORD_setzero(mid_value);
     BN_WORD_setzero(temp_result);
     BN_WORD_high(a,a_half);
     BN_WORD_high(b,b_half);
-    BN_WORD_mul_half(a_half,b_half,mid_value3,mid_value1,mid_value2,add_return_value);
-    BN_WORD_left_shift(mid_value3,temp_result,1,shift_return_value);
-    for(int i=0;i<dmax*2;i++){
-        mid_value3->d[i]=temp_result->d[i];
-    }
+    BN_WORD_mul_half(a_half,b_half,mid_value);
+    BN_WORD_left_shift(mid_value,temp_result,1);
+    BN_WORD_copy(temp_result,mid_value);
+    BN_WORD_setzero(temp_result);
+    BN_WORD_add(result,mid_value,temp_result);
+    BN_WORD_copy(temp_result,result);
 
-    BN_WORD_add(result,mid_value3,temp_result,add_return_value);
-    for(int i=0;i<dmax*2;i++){
-        result->d[i]=temp_result->d[i];
-    }
+
+    BN_WORD_free_device(a_half);
+    BN_WORD_free_device(b_half);
+    BN_WORD_free_device(mid_value);
+    BN_WORD_free_device(temp_result);
+    return 0;
 }
+
+
+
 
 /*
 

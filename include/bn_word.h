@@ -6,9 +6,9 @@
 #endif
 
 typedef struct bignumber_word_st{
-    int *dmax;
+    int dmax;
+    BN_ULONG carry;
     BN_ULONG *d;
-    BN_ULONG *carry;
 }BN_WORD;
 
 #endif

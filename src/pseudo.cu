@@ -1,78 +1,106 @@
 #include "pseudo.h"
+#include "stdio.h"
 
 #ifndef DMAX
 #define DMAX 32
 #endif
 
-__host__ __device__ void mul_lo (BN_WORD *a, BN_WORD *b, BN_WORD *c,int *return_value){
-    if ((*(a->carry)!=0)||(*(b->carry)!=0)){
-	*return_value=-1;
-        return ;
+__device__ int mul_lo (BN_WORD *a, BN_WORD *b, BN_WORD *result){
+    int dmax=a->dmax;
+    if ((a->carry!=0)||(b->carry!=0)){
+	return -2;
     }
-    if(*(a->dmax)!=*(b->dmax)){
-	*return_value=-2;
-        return ;
+    if((b->dmax!=dmax)||(result->dmax!=dmax)){
+	return -1;
     }
-    *(c->dmax)=*(a->dmax);
-    *(c->carry)=0;
-    c->d[0]=a->d[0]*b->d[0];
-    for(int i=1;i<*(c->dmax);i++){
-        c->d[i]=0;
+    result->carry=0;
+    BN_WORD_setzero(result);
+    result->d[0]=a->d[0]*b->d[0];
+    for(int i=1;i<dmax;i++){
+        result->d[i]=0;
     }
-    *return_value=0;
-    return ;
+    return 0;
 }
 
-__host__ __device__ void mad_lo (BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *u, BN_WORD *v, int *return_value, int *mul_lo_return_value, int *bn_word_add_return_value){
-    if ((*(a->carry)!=0)||(*(b->carry)!=0)){
-        *return_value =-1;
-	return ;
+ __device__ int mad_lo (BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
+    int dmax=a->dmax;
+    BN_WORD *temp_result;
+    temp_result=BN_WORD_new_device(dmax);
+    if ((a->carry!=0)||(b->carry!=0)){
+	return -2;
     }
-    if((*(a->dmax)!=*(b->dmax))||(*(a->dmax)!=*(u->dmax))||(*(a->dmax)!=*(v->dmax))){
-	*return_value=-2;
-        return ;
+    if((b->dmax!=dmax)||(c->dmax!=dmax)||(result_u->dmax!=dmax)||(result_v->dmax!=dmax)){
+        return -1;
     }
-    mul_lo(a,b,v,mul_lo_return_value);
-    BN_WORD_add(v, c, v,bn_word_add_return_value);
-    if(*(v->carry)==1){
-        *(u->carry)=0;
-        u->d[0]=1;
-        for(int i=1;i<*(u->dmax);i++){
-            u->d[i]=0;
+    BN_WORD_setzero(temp_result);
+    BN_WORD_setzero(result_u);
+    BN_WORD_setzero(result_v);
+    mul_lo(a,b,result_v);
+    BN_WORD_add(result_v, c, temp_result);
+    BN_WORD_copy(temp_result,result_v);
+    if(result_v->carry==1){
+        result_u->carry=0;
+        result_u->d[0]=1;
+        for(int i=1;i<dmax;i++){
+            result_u->d[i]=0;
         }
     }
     else{
-        *(u->carry)=0;
-        for(int i=0;i<*(u->dmax);i++){
-            u->d[i]=0;
-        }
-
+        result_u->carry=0;
+	BN_WORD_setzero(result_u);
     }
-    *(v->carry)=0;
-    *return_value=0;
-    return ;
+    result_v->carry=0;
+    BN_WORD_free_device(temp_result);
+    return 0;
 }
 
-__host__ __device__ void mad_hi(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v,BN_WORD *a_half, BN_WORD *b_half,BN_WORD *result,BN_WORD *mid_value1,  BN_WORD *mid_value2, BN_WORD *mid_value3, BN_WORD *temp_result, BN_WORD *c_2dmax, int *add_return_value,int *shift_return_value){
-    int dmax=*(a->dmax);
-    BN_WORD_mul(a,b,a_half,b_half,result,mid_value1,mid_value2,mid_value3,temp_result,add_return_value,shift_return_value);
-    BN_WORD_right_shift(result,temp_result,1,shift_return_value);
-    for(int i=0;i<dmax*2;i++){
-        result->d[i]=temp_result->d[i];
+__device__ int mad_hi(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
+    int dmax=a->dmax;
+    if ((a->carry!=0)||(b->carry!=0)){
+        return -2;
     }
+    if((b->dmax!=dmax)||(c->dmax!=dmax)||(result_u->dmax!=dmax)||(result_v->dmax!=dmax)){
+        return -1;
+    }
+    BN_WORD *result, *temp_result,*c_2dmax;
+    result=BN_WORD_new_device(dmax*2);
+    temp_result=BN_WORD_new_device(dmax*2);
+    c_2dmax=BN_WORD_new_device(dmax*2);
+    BN_WORD_setzero(result);
+    BN_WORD_setzero(temp_result);
+    BN_WORD_setzero(c_2dmax);
+    BN_WORD_mul(a,b,result);
+    BN_WORD_right_shift(result,temp_result,1);
+    BN_WORD_copy(temp_result,result);
     for(int i=0;i<dmax;i++){
         c_2dmax->d[i]=c->d[i];
     }
     for(int i=dmax;i<dmax*2;i++){
         c_2dmax->d[i]=0;
     }
-    BN_WORD_add(result,c_2dmax,temp_result,add_return_value);
+    BN_WORD_setzero(temp_result);
+    BN_WORD_setzero(result_u);
+    BN_WORD_setzero(result_v);
+    BN_WORD_add(result,c_2dmax,temp_result);
     for(int i=0;i<dmax;i++){
         result_v->d[i]=temp_result->d[i];
     }
     for(int i=0;i<dmax;i++){
         result_u->d[i]=temp_result->d[i+dmax];
     }
+    BN_WORD_free_device(result);
+    BN_WORD_free_device(temp_result);
+    BN_WORD_free_device(c_2dmax);
+    return 0;
+}
+
+__global__ void mad_lo_global(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
+    mad_lo(a,b,c,result_u,result_v);
+}
+
+__global__ void mad_hi_global(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
+    printf("start\n");
+    mad_hi(a,b,c,result_u,result_v);
 }
 
 /*
