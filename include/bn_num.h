@@ -6,7 +6,7 @@
 
 typedef struct bignum_num_st{
     int wmax;
-    BN_WORD *word;
+    BN_WORD **word;
 }BN_NUM;
 
 #endif

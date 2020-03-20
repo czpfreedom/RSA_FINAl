@@ -5,7 +5,7 @@
 #define DMAX 32
 #endif
 
-__device__ int mul_lo (BN_WORD *a, BN_WORD *b, BN_WORD *result){
+__device__ int mul_lo (const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     int dmax=a->dmax;
     if ((a->carry!=0)||(b->carry!=0)){
 	return -2;
@@ -22,7 +22,7 @@ __device__ int mul_lo (BN_WORD *a, BN_WORD *b, BN_WORD *result){
     return 0;
 }
 
- __device__ int mad_lo (BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
+ __device__ int mad_lo (const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
     int dmax=a->dmax;
     BN_WORD *temp_result;
     temp_result=BN_WORD_new_device(dmax);
@@ -54,7 +54,7 @@ __device__ int mul_lo (BN_WORD *a, BN_WORD *b, BN_WORD *result){
     return 0;
 }
 
-__device__ int mad_hi(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
+__device__ int mad_hi(const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
     int dmax=a->dmax;
     if ((a->carry!=0)||(b->carry!=0)){
         return -2;
@@ -92,6 +92,16 @@ __device__ int mad_hi(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_
     BN_WORD_free_device(temp_result);
     BN_WORD_free_device(c_2dmax);
     return 0;
+}
+
+__device__ int any(BN_WORD *a){
+    int cmp;
+    BN_WORD *zero;
+    zero=BN_WORD_new_device(a->dmax);
+    cmp=BN_WORD_cmp(a,zero);
+    if(cmp==0)
+	    return 1;
+    else return 0;
 }
 
 __global__ void mad_lo_global(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){

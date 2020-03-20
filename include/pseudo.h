@@ -3,20 +3,24 @@
 
 #include "bn_word_operation.h"
 
-__host__ __device__ int mul_lo (BN_WORD *a, BN_WORD *b, BN_WORD *result);
+__host__ __device__ int mul_lo (const BN_WORD *a,const  BN_WORD *b, BN_WORD *result);
 // -1: damx of a or b or result is not equal
 // -2: carry of a or b is not 0
 // 0: right
 
-__device__ int mad_lo (BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);
+__device__ int mad_lo (const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);
 // -1: damx of a or b or c or u or v is not equal
 // -2: carry of a or b is not 0
 // 0: right
 
-__device__ int mad_hi (BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);
+__device__ int mad_hi (const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);
 // -1: damx of a or b or u or v is not equal
 // -2: carry of a or b is not 0
 // 0: right
+
+__device__ int any(BN_WORD *a);
+//1: =0
+//0: !=0
 
 
 __global__ void mad_lo_global(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);

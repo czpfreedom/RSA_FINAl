@@ -16,13 +16,13 @@ __host__ __device__ void BN_WORD_setzero(BN_WORD *a); // a->0
 
 __host__ __device__ void BN_WORD_setone(BN_WORD *a); //a->1
 
-__host__ __device__ int BN_WORD_copy(BN_WORD *a,BN_WORD *b);
+__host__ __device__ int BN_WORD_copy(const BN_WORD *a,BN_WORD *b);
 //-1: a->dmax!=b->dmax
 //0: right
 
-__host__ __device__ void BN_WORD_print(BN_WORD *a);
+__host__ __device__ void BN_WORD_print(const BN_WORD *a);
 
-__host__ __device__ int BN_WORD_cmp(BN_WORD *a, BN_WORD *b);
+__host__ __device__ int BN_WORD_cmp(const BN_WORD *a,const  BN_WORD *b);
 // -1: a->dmax!=b->dmax
 // -2: a'carry or b'carry !=0
 // 0: right
@@ -30,45 +30,45 @@ __host__ __device__ int BN_WORD_cmp(BN_WORD *a, BN_WORD *b);
 // 2: b is bigger
 
 
-__host__ __device__ int BN_WORD_left_shift(BN_WORD *a,BN_WORD *b,int words);
+__host__ __device__ int BN_WORD_left_shift(const BN_WORD *a,BN_WORD *b,int words);
 // -1: a->dmax!=b->dmax
 // -3: shift_words>a->dmax
 // 0: right
 
-__host__ __device__ int BN_WORD_left_shift_bits(BN_WORD *a,BN_WORD *b,int bits);
+__host__ __device__ int BN_WORD_left_shift_bits(const BN_WORD *a,BN_WORD *b,int bits);
 // -1: a->dmax!=b->dmax
 // -3: shift_bits>bits of bn_ulong
 // 0: right
 
-__host__ __device__ int BN_WORD_right_shift(BN_WORD *a,BN_WORD *b,int words);
+__host__ __device__ int BN_WORD_right_shift(const BN_WORD *a,BN_WORD *b,int words);
 // -1: a->dmax!=b->dmax
 // -3: shift_words>a->dmax
 // 0: right
 
-__host__ __device__ int BN_WORD_right_shift_bits(BN_WORD *a,BN_WORD *b,int bits);
+__host__ __device__ int BN_WORD_right_shift_bits(const BN_WORD *a,BN_WORD *b,int bits);
 // -1: a->dmax!=b->dmax
 // -3: shift_bits>bits of bn_ulong
 // 0: right
 
-__host__ __device__ int BN_WORD_add(BN_WORD *a, BN_WORD *b, BN_WORD *result);
+__host__ __device__ int BN_WORD_add(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 // -1: a->dmax!=b->dmax
 // -2: a'carry or b'carry !=0
 // 0: right
 
-__host__ __device__ int BN_WORD_sub(BN_WORD *a, BN_WORD *b, BN_WORD *result);
+__host__ __device__ int BN_WORD_sub(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 // -1: a->dmax!=b->dmax
 // -2: a'carry or b'carry !=0
 // -4: a<b
 // 0: right
 
 
-__host__ __device__ void BN_WORD_high (BN_WORD *a, BN_WORD *b);
+__host__ __device__ void BN_WORD_high (const BN_WORD *a, BN_WORD *b);
 
-__host__ __device__ void BN_WORD_low (BN_WORD *a, BN_WORD *b);
+__host__ __device__ void BN_WORD_low (const BN_WORD *a, BN_WORD *b);
 
-__device__ int BN_WORD_mul_half(BN_WORD *a, BN_WORD *b, BN_WORD *result);
+__device__ int BN_WORD_mul_half(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 
-__device__ int BN_WORD_mul(BN_WORD *a, BN_WORD *b, BN_WORD *result);
+__device__ int BN_WORD_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 // -1: a->dmax!=b->dmax
 // -2: a'carry or b'carry !=0
 // 0: right

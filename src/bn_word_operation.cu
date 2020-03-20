@@ -66,7 +66,7 @@ __host__ __device__ void BN_WORD_setone(BN_WORD *a){
 }
 
 
-__host__ __device__ int BN_WORD_copy(BN_WORD *a,BN_WORD *b){
+__host__ __device__ int BN_WORD_copy(const BN_WORD *a,BN_WORD *b){
     if(a->dmax!=b->dmax){
         return -1;
     }
@@ -77,7 +77,7 @@ __host__ __device__ int BN_WORD_copy(BN_WORD *a,BN_WORD *b){
     return 0;
 }
 
-__host__ __device__ void BN_WORD_print(BN_WORD *a){
+__host__ __device__ void BN_WORD_print(const BN_WORD *a){
     printf("dmax:%d\n",a->dmax);
     printf("carry:%lx\n",a->carry);
     for(int i=(a->dmax)-1;i>=0;i--){
@@ -86,7 +86,7 @@ __host__ __device__ void BN_WORD_print(BN_WORD *a){
     printf("\n");
 }
 
-__host__ __device__ int BN_WORD_cmp(BN_WORD *a, BN_WORD *b){
+__host__ __device__ int BN_WORD_cmp(const BN_WORD *a,const BN_WORD *b){
     if (((a->carry)!=0)||((b->carry)!=0)){
         return -2;
     }
@@ -104,7 +104,7 @@ __host__ __device__ int BN_WORD_cmp(BN_WORD *a, BN_WORD *b){
     return 0;
 }
 
-__host__ __device__ int BN_WORD_left_shift(BN_WORD *a,BN_WORD *b,int words){
+__host__ __device__ int BN_WORD_left_shift(const BN_WORD *a,BN_WORD *b,int words){
     if((a->dmax)!=(b->dmax)){
         return -1;
     }
@@ -122,7 +122,7 @@ __host__ __device__ int BN_WORD_left_shift(BN_WORD *a,BN_WORD *b,int words){
 }
 
 
-__host__ __device__ int BN_WORD_left_shift_bits(BN_WORD *a,BN_WORD *b,int bits){
+__host__ __device__ int BN_WORD_left_shift_bits(const BN_WORD *a,BN_WORD *b,int bits){
     if((a->dmax)!=(b->dmax)){
         return -1;
     }
@@ -138,7 +138,7 @@ __host__ __device__ int BN_WORD_left_shift_bits(BN_WORD *a,BN_WORD *b,int bits){
 }
 
 
-__host__ __device__ int BN_WORD_right_shift(BN_WORD *a,BN_WORD *b,int words){
+__host__ __device__ int BN_WORD_right_shift(const BN_WORD *a,BN_WORD *b,int words){
     if((a->dmax)!=(b->dmax)){
         return -1;
     }
@@ -157,7 +157,7 @@ __host__ __device__ int BN_WORD_right_shift(BN_WORD *a,BN_WORD *b,int words){
 
 
 
-__host__ __device__ int BN_WORD_right_shift_bits(BN_WORD *a,BN_WORD *b,int bits){
+__host__ __device__ int BN_WORD_right_shift_bits(const BN_WORD *a,BN_WORD *b,int bits){
     if((a->dmax)!=(b->dmax)){
         return -1;
     }
@@ -174,7 +174,7 @@ __host__ __device__ int BN_WORD_right_shift_bits(BN_WORD *a,BN_WORD *b,int bits)
 
 
 
-__host__ __device__ int BN_WORD_add(BN_WORD *a, BN_WORD *b, BN_WORD *result){
+__host__ __device__ int BN_WORD_add(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     BN_ULONG carry2=0;
     BN_ULONG carry1=0;
     BN_ULONG mid_value;
@@ -202,7 +202,7 @@ __host__ __device__ int BN_WORD_add(BN_WORD *a, BN_WORD *b, BN_WORD *result){
 }
 
 
-__host__ __device__ int BN_WORD_sub(BN_WORD *a, BN_WORD *b, BN_WORD *result){
+__host__ __device__ int BN_WORD_sub(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     BN_ULONG mid_value1, mid_value;
     BN_ULONG carry1,carry2;
     int cmp=BN_WORD_cmp(a,b);
@@ -245,7 +245,7 @@ __host__ __device__ int BN_WORD_sub(BN_WORD *a, BN_WORD *b, BN_WORD *result){
 
 
 
-__host__ __device__ void BN_WORD_high (BN_WORD *a, BN_WORD *b){
+__host__ __device__ void BN_WORD_high (const BN_WORD *a, BN_WORD *b){
     b->dmax=a->dmax;
     b->carry=a->carry;
     for(int i=0;i<a->dmax;i++){
@@ -253,7 +253,7 @@ __host__ __device__ void BN_WORD_high (BN_WORD *a, BN_WORD *b){
     }	
 }
 
-__host__ __device__ void BN_WORD_low (BN_WORD *a, BN_WORD *b){
+__host__ __device__ void BN_WORD_low (const BN_WORD *a, BN_WORD *b){
     b->dmax=a->dmax;
     b->carry=a->dmax;
     for(int i=0;i<a->dmax;i++){
@@ -261,7 +261,7 @@ __host__ __device__ void BN_WORD_low (BN_WORD *a, BN_WORD *b){
     }
 }
 
- __device__ int BN_WORD_mul_half(BN_WORD *a, BN_WORD *b, BN_WORD *result){
+ __device__ int BN_WORD_mul_half(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     BN_WORD *mid_value;
     BN_WORD *temp_result;
     int dmax=a->dmax;
@@ -285,7 +285,7 @@ __host__ __device__ void BN_WORD_low (BN_WORD *a, BN_WORD *b){
     return 0;
 }
 
-__device__ int BN_WORD_mul(BN_WORD *a, BN_WORD *b, BN_WORD *result){
+__device__ int BN_WORD_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     int dmax;
     dmax=a->dmax;
     if((b->dmax!=dmax)||(result->dmax!=2*dmax)){
