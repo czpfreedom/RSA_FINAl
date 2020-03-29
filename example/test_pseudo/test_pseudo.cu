@@ -5,14 +5,14 @@
 
 
 
-#define DMAX 3
+#define DMAX 20
 
 using namespace std;
 
 int main(){
 
     BIGNUM *open_a, *open_b, *open_c, *open_result, *open_mid_value1, *open_mid_value2, *pow_2_w ;
-    BN_WORD *bn_a, *bn_b, *bn_c, *bn_result,*bn_word_result, *mad_lo_u,*mad_lo_v,*mad_hi_u,*mad_hi_v;
+    BN_WORD *bn_a, *bn_b, *bn_c, *bn_result,*bn_word_result, *mad_lo_u,*mad_lo_v,*mad_hi_u,*mad_hi_v,*zero;
     BN_CTX *ctx;
     int transform_result, return_value;
 // test mul_lo
@@ -39,11 +39,8 @@ int main(){
     BN_WORD_print(bn_b);
     cout<<"open_result"<<endl;
     BN_WORD_print(bn_result);
-    return_value=mul_lo(bn_a,bn_b,bn_word_result);
-    if(return_value!=0){
-        cerr<<"Error: mul_lo failed"<<endl;
-        exit(1);
-    }
+    mul_lo_global<<<1,1>>>(bn_a,bn_b,bn_word_result);
+    cudaDeviceSynchronize();
     cout<<"bn_word_result"<<endl;
     BN_WORD_print(bn_word_result);
     BN_free(open_a);
@@ -79,17 +76,15 @@ int main(){
         pow_2_w->d[i]=0;
     }
     BN_mul(open_mid_value1,open_a,open_b,ctx);
-    open_mid_value2->d[0]=open_mid_value1->d[0];
-    for(int i=1;i<DMAX;i++){
-        open_mid_value2->d[i]=0;
-    }
-    BN_add(open_result,open_mid_value2,open_c);
+    BN_add(open_result,open_mid_value1,open_c);
     bn_a=BN_WORD_new(DMAX);
     bn_b=BN_WORD_new(DMAX);
     bn_c=BN_WORD_new(DMAX);
     bn_result=BN_WORD_new(DMAX*2);
     mad_lo_u=BN_WORD_new(DMAX);
     mad_lo_v=BN_WORD_new(DMAX);
+    zero=BN_WORD_new(DMAX);
+    BN_WORD_setzero(zero);
     transform_result=BN_WORD_openssl_transform(open_a,bn_a,DMAX)+BN_WORD_openssl_transform(open_b,bn_b,DMAX)+BN_WORD_openssl_transform(open_c,bn_c,DMAX)
 	    +BN_WORD_openssl_transform(open_result,bn_result,DMAX*2);
     if(transform_result!=0){
@@ -135,26 +130,22 @@ int main(){
     open_mid_value1=BN_new();
     open_mid_value2=BN_new();
     ctx=BN_CTX_new();
-    pow_2_w=BN_new();
     BN_rand(open_a,DMAX*(sizeof(BN_ULONG)*8),1,0);
     BN_rand(open_b,DMAX*(sizeof(BN_ULONG)*8),1,0);
     BN_rand(open_c,DMAX*(sizeof(BN_ULONG)*8),1,0);
-    BN_rand(pow_2_w,DMAX*(sizeof(BN_ULONG)*8),0,0);
-    pow_2_w->top=DMAX;
-    pow_2_w->dmax=DMAX;
-    pow_2_w->d[0]=0;
-    pow_2_w->d[1]=1;
-    for(int i=2;i<DMAX;i++) pow_2_w->d[i]=0;
+    BN_rand(open_mid_value2,DMAX*(sizeof(BN_ULONG)*8),1,0);
     BN_mul(open_mid_value1,open_a,open_b,ctx);
-    BN_mul(open_mid_value2,open_c,pow_2_w,ctx);
-    BN_add(open_result,open_mid_value2,open_mid_value1);
+    for(int i=0;i<DMAX;i++){
+        open_mid_value2->d[i]=open_mid_value1->d[i+DMAX];
+    }
+    BN_add(open_result,open_mid_value2,open_c);
     bn_a=BN_WORD_new(DMAX);
     bn_b=BN_WORD_new(DMAX);
     bn_c=BN_WORD_new(DMAX);
-    bn_result=BN_WORD_new(DMAX*2);
+    bn_result=BN_WORD_new(DMAX);
     mad_hi_u=BN_WORD_new(DMAX);
     mad_hi_v=BN_WORD_new(DMAX);
-    transform_result=BN_WORD_openssl_transform(open_a,bn_a,DMAX)+BN_WORD_openssl_transform(open_b,bn_b,DMAX)+BN_WORD_openssl_transform(open_c,bn_c,DMAX)+BN_WORD_openssl_transform(open_result,bn_result,DMAX*2);
+    transform_result=BN_WORD_openssl_transform(open_a,bn_a,DMAX)+BN_WORD_openssl_transform(open_b,bn_b,DMAX)+BN_WORD_openssl_transform(open_c,bn_c,DMAX)+BN_WORD_openssl_transform(open_result,bn_result,DMAX);
     if(transform_result!=0){
         cerr<<"Error: transform failed"<<endl;
         exit(1);

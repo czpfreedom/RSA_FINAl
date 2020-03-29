@@ -51,6 +51,7 @@ int main(){
     BN_free(open_a);
     BN_free(open_b);
     BN_free(open_result);
+    BN_CTX_free(ctx);
     BN_WORD_free(bn_a);
     BN_WORD_free(bn_b);
     BN_WORD_free(bn_result);

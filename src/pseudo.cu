@@ -1,9 +1,6 @@
 #include "pseudo.h"
 #include "stdio.h"
 
-#ifndef DMAX
-#define DMAX 32
-#endif
 
 __device__ int mul_lo (const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     int dmax=a->dmax;
@@ -15,30 +12,32 @@ __device__ int mul_lo (const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     }
     result->carry=0;
     BN_WORD_setzero(result);
-    result->d[0]=a->d[0]*b->d[0];
-    for(int i=1;i<dmax;i++){
-        result->d[i]=0;
+    BN_WORD *result_temp;
+    result_temp=BN_WORD_new_device(dmax*2);
+    BN_WORD_setzero(result_temp);
+    BN_WORD_mul(a,b,result_temp);
+    for(int i=0;i<dmax;i++){
+        result->d[i]=result_temp->d[i];
     }
     return 0;
 }
 
  __device__ int mad_lo (const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
     int dmax=a->dmax;
-    BN_WORD *temp_result;
-    temp_result=BN_WORD_new_device(dmax);
     if ((a->carry!=0)||(b->carry!=0)){
 	return -2;
     }
     if((b->dmax!=dmax)||(c->dmax!=dmax)||(result_u->dmax!=dmax)||(result_v->dmax!=dmax)){
         return -1;
     }
-    BN_WORD_setzero(temp_result);
+    BN_WORD *temp_result;
+    temp_result=BN_WORD_new_device(dmax);
     BN_WORD_setzero(result_u);
     BN_WORD_setzero(result_v);
     mul_lo(a,b,result_v);
     BN_WORD_add(result_v, c, temp_result);
     BN_WORD_copy(temp_result,result_v);
-    if(result_v->carry==1){
+    if(BN_WORD_cmp(c,result_v)==1){
         result_u->carry=0;
         result_u->d[0]=1;
         for(int i=1;i<dmax;i++){
@@ -50,7 +49,6 @@ __device__ int mul_lo (const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
 	BN_WORD_setzero(result_u);
     }
     result_v->carry=0;
-    BN_WORD_free_device(temp_result);
     return 0;
 }
 
@@ -62,54 +60,47 @@ __device__ int mad_hi(const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_W
     if((b->dmax!=dmax)||(c->dmax!=dmax)||(result_u->dmax!=dmax)||(result_v->dmax!=dmax)){
         return -1;
     }
-    BN_WORD *result, *temp_result,*c_2dmax;
+    BN_WORD *result, *temp_result,*temp_2_result;
     result=BN_WORD_new_device(dmax*2);
-    temp_result=BN_WORD_new_device(dmax*2);
-    c_2dmax=BN_WORD_new_device(dmax*2);
+    temp_result=BN_WORD_new_device(dmax);
+    temp_2_result=BN_WORD_new_device(dmax*2);
     BN_WORD_setzero(result);
-    BN_WORD_setzero(temp_result);
-    BN_WORD_setzero(c_2dmax);
     BN_WORD_mul(a,b,result);
-    BN_WORD_right_shift(result,temp_result,1);
-    BN_WORD_copy(temp_result,result);
-    for(int i=0;i<dmax;i++){
-        c_2dmax->d[i]=c->d[i];
-    }
-    for(int i=dmax;i<dmax*2;i++){
-        c_2dmax->d[i]=0;
-    }
-    BN_WORD_setzero(temp_result);
+    BN_WORD_right_shift(result,temp_2_result,dmax);
+    BN_WORD_copy(temp_2_result,result);
     BN_WORD_setzero(result_u);
     BN_WORD_setzero(result_v);
-    BN_WORD_add(result,c_2dmax,temp_result);
     for(int i=0;i<dmax;i++){
-        result_v->d[i]=temp_result->d[i];
+        result_v->d[i]=result->d[i];
     }
-    for(int i=0;i<dmax;i++){
-        result_u->d[i]=temp_result->d[i+dmax];
+    BN_WORD_add(result_v,c,temp_result);
+    BN_WORD_copy(temp_result,result_v);
+    if(BN_WORD_cmp(c,result_v)==1){
+        BN_WORD_setone(result_u);
     }
     BN_WORD_free_device(result);
-    BN_WORD_free_device(temp_result);
-    BN_WORD_free_device(c_2dmax);
     return 0;
 }
 
-__device__ int any(BN_WORD *a){
+__device__ int any(BN_NUM *a){
     int cmp;
-    BN_WORD *zero;
-    zero=BN_WORD_new_device(a->dmax);
-    cmp=BN_WORD_cmp(a,zero);
+    BN_NUM *zero;
+    zero=BN_NUM_new_device(a->wmax,a->word[0]->dmax);
+    cmp=BN_NUM_cmp(a,zero);
     if(cmp==0)
 	    return 1;
     else return 0;
 }
 
-__global__ void mad_lo_global(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
+__global__ void mul_lo_global(const BN_WORD *a, const BN_WORD *b, BN_WORD*result){
+    mul_lo(a,b,result);
+}
+
+__global__ void mad_lo_global(const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
     mad_lo(a,b,c,result_u,result_v);
 }
 
-__global__ void mad_hi_global(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
-    printf("start\n");
+__global__ void mad_hi_global(const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v){
     mad_hi(a,b,c,result_u,result_v);
 }
 

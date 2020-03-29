@@ -2,8 +2,10 @@
 #define PSEUDO_H
 
 #include "bn_word_operation.h"
+#include "bn_num_operation.h"
 
-__host__ __device__ int mul_lo (const BN_WORD *a,const  BN_WORD *b, BN_WORD *result);
+
+__device__ int mul_lo (const BN_WORD *a,const  BN_WORD *b, BN_WORD *result);
 // -1: damx of a or b or result is not equal
 // -2: carry of a or b is not 0
 // 0: right
@@ -18,14 +20,15 @@ __device__ int mad_hi (const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_
 // -2: carry of a or b is not 0
 // 0: right
 
-__device__ int any(BN_WORD *a);
+__device__ int any(BN_NUM *a);
 //1: =0
 //0: !=0
 
+__global__ void mul_lo_global(const BN_WORD *a, const BN_WORD *b, BN_WORD*result);
 
-__global__ void mad_lo_global(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);
+__global__ void mad_lo_global(const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);
 
-__global__ void mad_hi_global(BN_WORD *a, BN_WORD *b, BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);
+__global__ void mad_hi_global(const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_WORD *result_u, BN_WORD *result_v);
 
 
 /*

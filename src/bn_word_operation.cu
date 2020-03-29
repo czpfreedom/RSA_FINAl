@@ -178,9 +178,6 @@ __host__ __device__ int BN_WORD_add(const BN_WORD *a, const BN_WORD *b, BN_WORD 
     BN_ULONG carry2=0;
     BN_ULONG carry1=0;
     BN_ULONG mid_value;
-    if (((a->carry)!=0)||((b->carry)!=0)){
-        return -2;
-    }
     if((a->dmax!=b->dmax)||(a->dmax!=result->dmax)){
         return -1;
     }
@@ -197,7 +194,7 @@ __host__ __device__ int BN_WORD_add(const BN_WORD *a, const BN_WORD *b, BN_WORD 
         }
         result->d[i]=mid_value;
     }
-    result->carry=carry1;
+    result->carry=0;
     return 0;
 }
 
@@ -212,14 +209,10 @@ __host__ __device__ int BN_WORD_sub(const BN_WORD *a, const BN_WORD *b, BN_WORD 
     if(cmp==-2){
         return -2;
     }
-    if(cmp==2){
-        return -4;
-    }
     if(cmp==0){
         BN_WORD_setzero(result);
 	return 0;
     }
-    if(cmp==1){
         result->dmax=a->dmax;
         result->carry=0;
         carry2=0;
@@ -236,10 +229,8 @@ __host__ __device__ int BN_WORD_sub(const BN_WORD *a, const BN_WORD *b, BN_WORD 
                 carry1=1;
             }
             result->d[i]=mid_value;
-        }
+	}
 	return 0;
-    }
-    return 0;
 }
 
 
