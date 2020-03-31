@@ -2,10 +2,6 @@
 #include "stdio.h"
 
 
-BN_ULONG get_bit(BN_ULONG a,int i){
-    return  (a&((BN_ULONG)1<<i))/((BN_ULONG)1<<i);
-}
-
 
 __host__ BN_NUM *BN_NUM_new(int wmax,int dmax){
     BN_NUM *a;
@@ -322,8 +318,7 @@ __host__ int BN_NUM_mul(const BN_NUM *a, const BN_NUM *b, BN_NUM *result){
     int bits_bn_ulong=sizeof(BN_ULONG)*8;
     int shift_bits;
     BN_ULONG mul_value;
-    BN_NUM *a_shift;
-    BN_NUM *temp_result;
+    BN_NUM *a_shift,*temp_result;
     a_shift=BN_NUM_new(wmax,dmax);
     temp_result=BN_NUM_new(wmax,dmax);
     BN_NUM_setzero(result);
@@ -341,7 +336,9 @@ __host__ int BN_NUM_mul(const BN_NUM *a, const BN_NUM *b, BN_NUM *result){
 	    }
 	}
     }
-   return 0; 
+    BN_NUM_free(a_shift);
+    BN_NUM_free(temp_result);
+    return 0; 
 }
 
 __host__ int BN_NUM_div(const BN_NUM *a, const BN_NUM *b, BN_NUM *q, BN_NUM *r){
@@ -373,21 +370,23 @@ __host__ int BN_NUM_div(const BN_NUM *a, const BN_NUM *b, BN_NUM *q, BN_NUM *r){
 	BN_NUM_copy(temp_result,a_temp);
     }
     shift_num --;
-  //  printf("shift_num:%d\n",shift_num);
     BN_NUM_copy(a,a_temp);
     BN_NUM_left_shift_bits(b,b_temp,shift_num);
     for(int i=shift_num;i>=0;i--){
         if(BN_NUM_cmp(a_temp,b_temp)==1){
 	    BN_NUM_sub(a_temp,b_temp,a_temp);
 	    BN_NUM_left_shift_bits(one,div_temp,i);
-//	    printf("div_temp:\n");
-//	    BN_NUM_print(div_temp);
 	    BN_NUM_add(q,div_temp,q);
 	}
 	BN_NUM_right_shift_bits(b_temp,temp_result,1);
 	BN_NUM_copy(temp_result,b_temp);
     }
     BN_NUM_copy(a_temp,r);
+    BN_NUM_free(one);
+    BN_NUM_free(a_temp);
+    BN_NUM_free(b_temp);
+    BN_NUM_free(temp_result);
+    BN_NUM_free(div_temp);
     return 0;
 }
 

@@ -176,9 +176,6 @@ int main(){
     ctx=BN_CTX_new();
     BN_rand(open_a,DMAX*(sizeof(BN_ULONG)*8)*WMAX,1,0);
     BN_rand(open_b,DMAX*(sizeof(BN_ULONG)*8)*WMAX,1,0);
-    open_b->d[DMAX*WMAX-1]=0;
-    open_b->d[DMAX*WMAX-2]=0;
-    open_b->d[DMAX*WMAX-3]=0;
     BN_div(open_d,open_r,open_a,open_b,ctx);
     bn_a=BN_NUM_new(WMAX,DMAX);
     bn_b=BN_NUM_new(WMAX,DMAX);
@@ -190,11 +187,8 @@ int main(){
     BN_NUM_openssl_transform(open_b,bn_b,WMAX,DMAX);
     cout<<"1"<<endl;
     BN_NUM_openssl_transform(open_d,bn_d,WMAX,DMAX);
+    cout<<"1"<<endl;
     BN_NUM_openssl_transform(open_r,bn_r,WMAX,DMAX);
-    if(transform_result!=0){
-        cerr<<"Error: transform failed"<<endl;
-        exit(1);
-    }
     cout<<"a:"<<endl;
     BN_NUM_print(bn_a);
     cout<<"b:"<<endl;

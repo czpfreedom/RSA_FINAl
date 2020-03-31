@@ -15,11 +15,9 @@
 
 
 
-#ifndef get_bit
-#define get_bit(a,i)     (a&((BN_ULONG)1<<i))>>i
-#endif
-
-
+BN_ULONG get_bit(BN_ULONG a,int i){
+    return  (a&((BN_ULONG)1<<i))/((BN_ULONG)1<<i);
+}
 
 __host__ BN_WORD* BN_WORD_new(int dmax){
     BN_WORD *a;

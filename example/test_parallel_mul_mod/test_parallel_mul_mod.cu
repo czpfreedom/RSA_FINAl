@@ -2,15 +2,15 @@
 #include "bn_openssl.h"
 #include "openssl/bn.h"
 #include "iostream"
-#include "parallel_mont_mul.h"
+#include "parallel_mont_exp.h"
 
 
 #ifndef DMAX
-#define DMAX 3
+#define DMAX 1
 #endif
 
 #ifndef WMAX
-#define WMAX 5
+#define WMAX 1
 #endif
 
 using namespace std;
@@ -124,7 +124,7 @@ cout<<"open_n"<<endl;
 BN_NUM_print(bn_n);
 cout<<"open_result"<<endl;
 BN_NUM_print(bn_result);
-BN_NUM_mod_mul(bn_a, bn_b,bn_n,WMAX, DMAX ,bn_word_result);
+BN_NUM_parallel_mod_mul(bn_a, bn_b,bn_n,WMAX, DMAX ,bn_word_result);
 cout<<"bn_word_result"<<endl;
 BN_NUM_print(bn_word_result);
 

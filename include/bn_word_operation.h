@@ -3,6 +3,8 @@
 
 #include "bn_word.h"
 
+BN_ULONG get_bit(BN_ULONG a,int i);
+
 __host__ BN_WORD *BN_WORD_new(int dmax);
 
 __device__ BN_WORD *BN_WORD_new_device(int dmax);
