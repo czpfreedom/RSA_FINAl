@@ -68,12 +68,18 @@ __host__ __device__ void BN_WORD_high (const BN_WORD *a, BN_WORD *b);
 
 __host__ __device__ void BN_WORD_low (const BN_WORD *a, BN_WORD *b);
 
-__device__ int BN_WORD_mul_half(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
+__host__ int BN_WORD_mul_half(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 
-__device__ int BN_WORD_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
+__device__ int BN_WORD_mul_half_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
+
+__host__ int BN_WORD_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
+
+__device__ int BN_WORD_mul_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 // -1: a->dmax!=b->dmax
 // -2: a'carry or b'carry !=0
 // 0: right
+
+__host__ int BN_WORD_div(const BN_WORD *a, const BN_WORD *b, BN_WORD *q, BN_WORD *r);
 
 //__global__ void gpu_bn_word_mul(BN_WORD *a,BN_WORD *b,BN_WORD *result);
 /*

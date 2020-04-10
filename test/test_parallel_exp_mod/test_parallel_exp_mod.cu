@@ -95,8 +95,7 @@ open_R->d[WMAX*DMAX]=1;
 while((open_n->d[0]%2)==0){
         BN_rand(open_n,DMAX*(sizeof(BN_ULONG)*8)*WMAX,0,0);
 }
-BN_mod_exp(open_temp, open_a, open_e, open_n, ctx);
-BN_mod_mul(open_result,open_temp,open_R,open_n,ctx);
+BN_mod_exp(open_result, open_a, open_e, open_n, ctx);
 BN_NUM_openssl_transform(open_a,bn_a,WMAX,DMAX);
 BN_NUM_openssl_transform(open_e,bn_e,WMAX,DMAX);
 BN_NUM_openssl_transform(open_n,bn_n,WMAX,DMAX);

@@ -15,7 +15,7 @@ __device__ int mul_lo (const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     result->carry=0;
     BN_WORD_setzero(result);
     BN_WORD_setzero(result_temp);
-    BN_WORD_mul(a,b,result_temp);
+    BN_WORD_mul_device(a,b,result_temp);
     for(int i=0;i<dmax;i++){
         result->d[i]=result_temp->d[i];
     }
@@ -67,7 +67,7 @@ __device__ int mad_hi(const BN_WORD *a, const BN_WORD *b, const BN_WORD *c, BN_W
         return -1;
     }
     BN_WORD_setzero(result);
-    BN_WORD_mul(a,b,result);
+    BN_WORD_mul_device(a,b,result);
     BN_WORD_right_shift(result,temp_2_result,dmax);
     BN_WORD_copy(temp_2_result,result);
     BN_WORD_setzero(result_u);

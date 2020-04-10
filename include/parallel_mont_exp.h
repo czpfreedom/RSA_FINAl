@@ -7,7 +7,7 @@
 
 __host__ int BN_NUM_inverse(const BN_NUM *n, const int d, const int l, BN_NUM *n_inverse);
 
-__host__ int BN_NUM_parallel_mod_mul(const BN_NUM *a, const BN_NUM *b, const BN_NUM *n, const int d, const int l,BN_NUM *result);
+__host__ int BN_NUM_parallel_mod_mul(const BN_NUM *a, const BN_NUM *b, const BN_NUM *n, BN_NUM *result);
 
 
 __global__ void parallel_mont_mul(const BN_NUM *a,const BN_NUM *b,const BN_NUM *n,const int wmax,const int dmax,const BN_WORD *n0_inverse,
