@@ -4,7 +4,7 @@
 #include "iostream"
 
 #define DMAX 3
-#define LOOP_NUM 100
+#define LOOP_NUM 2000
 #define CUDA_TIMING
 
 //#define PRINT
@@ -54,12 +54,12 @@ int main(){
     sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
     cout<<"mul_cpu_time: "<<sum_time<<endl;
 #endif
-/*
+
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);
 #endif
     BN_WORD *test_word;
-    for(int i=0;i<2000;i++){
+    for(int i=0;i<LOOP_NUM;i++){
         test_word=BN_WORD_new(DMAX);
 	BN_WORD_free(test_word);
     }
@@ -68,7 +68,7 @@ int main(){
     sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
     cout<<"new_cpu_time: "<<sum_time<<endl;
 #endif
-*/
+
 
     bn_a=BN_WORD_new(DMAX);
     bn_b=BN_WORD_new(DMAX);
@@ -81,9 +81,9 @@ int main(){
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);
 #endif
-
-    BN_WORD_mul(bn_a,bn_b,bn_word_result);
-
+    for(int i=0;i<LOOP_NUM;i++){
+	BN_WORD_mul(bn_a,bn_b,bn_word_result);
+    }
 #ifdef CUDA_TIMING
     gettimeofday(&stop,0);
     sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;

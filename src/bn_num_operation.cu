@@ -2,7 +2,6 @@
 #include "stdio.h"
 
 
-
 __host__ BN_NUM *BN_NUM_new(int wmax,int dmax){
     BN_NUM *a;
     cudaMallocManaged((void**)&(a),sizeof(BN_NUM));

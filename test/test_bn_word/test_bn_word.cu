@@ -5,16 +5,19 @@
 
 
 #define DMAX 32
+#define LOOP_NUM 1
 
-#define CUDA_TIMING
+//#define CUDA_TIMING
 
-//#define PRINT
+#define PRINT
+
+#define BN_ULONG_MUL
 
 #define ADD
 
 #define SUB
-#define shift
-#define shift_bits
+//#define shift
+//#define shift_bits
 
 using namespace std;
 
@@ -27,12 +30,19 @@ int main(){
 	
     BIGNUM *open_a, *open_b,*open_result;
     BN_WORD *bn_a, *bn_b, *bn_result, *bn_word_result;
-    int transform_result;
-    int return_value;
 
 #ifdef CUDA_TIMING
     timeval start, stop;
     double sum_time;
+#endif
+
+#ifdef BN_ULONG_MUL
+    //test bn_ulong_mul
+    BN_ULONG a=0x1234567812345678L;
+    BN_ULONG b=0x2345678923456789L;
+    BN_ULONG u,v;
+    BN_ULONG_mul(a,b,u,v);
+    cout<<"u:"<<u<<"v:"<<v<<endl;
 #endif
 
 #ifdef ADD
@@ -48,29 +58,32 @@ int main(){
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);
 #endif
+    for(int i=0;i<LOOP_NUM;i++){
+        BN_add(open_result,open_a,open_b);
+    }
 
-    BN_add(open_result,open_a,open_b);
-
+    bn_a=BN_WORD_new(DMAX);
+    cout<<"a:"<<endl;
+    BN_WORD_openssl_transform(open_a,bn_a,DMAX);
+    BN_WORD_print(bn_a);
 #ifdef CUDA_TIMING
     gettimeofday(&stop,0);
     sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
     cout<<"add_cpu_time: "<<sum_time<<endl;
 #endif
 
-    bn_a=BN_WORD_new(DMAX);
     bn_b=BN_WORD_new(DMAX);
     bn_result=BN_WORD_new(DMAX);
     bn_word_result=BN_WORD_new(DMAX);
-    BN_WORD_openssl_transform(open_a,bn_a,DMAX);
     BN_WORD_openssl_transform(open_b,bn_b,DMAX);
     BN_WORD_openssl_transform(open_result,bn_result,DMAX);
 
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);
 #endif
-
-    BN_WORD_add(bn_a,bn_b,bn_word_result);
-
+    for(int i=0;i<LOOP_NUM;i++){
+        BN_WORD_add(bn_a,bn_b,bn_a);
+    }
 #ifdef CUDA_TIMING
     gettimeofday(&stop,0);
     sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
@@ -78,14 +91,12 @@ int main(){
 #endif
 
 #ifdef PRINT
-    cout<<"a:"<<endl;
-    BN_WORD_print(bn_a);
     cout<<"b:"<<endl;
     BN_WORD_print(bn_b);
     cout<<"open_result"<<endl;
     BN_WORD_print(bn_result);
     cout<<"bn_word_result"<<endl;
-    BN_WORD_print(bn_word_result);
+    BN_WORD_print(bn_a);
 #endif
 
     BN_free(open_a);
@@ -112,17 +123,19 @@ int main(){
 #endif
     BN_sub(open_result,open_a,open_b);
 
+    bn_a=BN_WORD_new(DMAX);
+    BN_WORD_openssl_transform(open_a,bn_a,DMAX);
+    cout<<"a:"<<endl;
+    BN_WORD_print(bn_a);
 #ifdef CUDA_TIMING
     gettimeofday(&stop,0);
     sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
     cout<<"sub_cpu_time: "<<sum_time<<endl;
 #endif
 
-    bn_a=BN_WORD_new(DMAX);
     bn_b=BN_WORD_new(DMAX);
     bn_result=BN_WORD_new(DMAX);
     bn_word_result=BN_WORD_new(DMAX);
-    BN_WORD_openssl_transform(open_a,bn_a,DMAX);
     BN_WORD_openssl_transform(open_b,bn_b,DMAX);
     BN_WORD_openssl_transform(open_result,bn_result,DMAX);
 
@@ -130,7 +143,7 @@ int main(){
     gettimeofday(&start,0);
 #endif
 
-    BN_WORD_sub(bn_a,bn_b,bn_word_result);
+    BN_WORD_sub(bn_a,bn_b,bn_a);
 
 #ifdef CUDA_TIMING
     gettimeofday(&stop,0);
@@ -139,14 +152,12 @@ int main(){
 #endif
 
 #ifdef PRINT
-    cout<<"a:"<<endl;
-    BN_WORD_print(bn_a);
     cout<<"b:"<<endl;
     BN_WORD_print(bn_b);
     cout<<"open_result"<<endl;
     BN_WORD_print(bn_result);
     cout<<"bn_word_result"<<endl;
-    BN_WORD_print(bn_word_result);
+    BN_WORD_print(bn_a);
 #endif
 
     BN_free(open_a);

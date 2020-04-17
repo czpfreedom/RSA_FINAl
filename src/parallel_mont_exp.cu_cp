@@ -2,6 +2,63 @@
 #include "pseudo.h"
 #include "parallel_mont_exp.h"
 #include "stdio.h"
+#include "time.h"
+
+//#define CUDA_TIMING
+
+
+__host__ int BN_WORD_inverse(const BN_WORD *n, BN_WORD *n_inverse){
+    int dmax=n->dmax;
+    BN_WORD *zero,*one,*R1, *R2, *s1, *s2, *t1, *t2,*temp,*div_temp,*temp_mul,*q;
+    zero=BN_WORD_new(dmax);
+    one=BN_WORD_new(dmax);
+    R1=BN_WORD_new(dmax);
+    R2=BN_WORD_new(dmax);
+    s1=BN_WORD_new(dmax);
+    s2=BN_WORD_new(dmax);
+    t1=BN_WORD_new(dmax);
+    t2=BN_WORD_new(dmax);
+    temp=BN_WORD_new(dmax);
+    div_temp=BN_WORD_new(dmax);
+    q=BN_WORD_new(dmax);
+    temp_mul=BN_WORD_new(dmax);
+    BN_WORD_setzero(zero);
+    BN_WORD_setone(one);
+    BN_WORD_copy(n,R1);
+    BN_WORD_sub(zero,R1,R2);
+    BN_WORD_div(R2,R1,q,R2);
+    BN_WORD_add(q,one,q);
+    BN_WORD_setzero(s1);
+    BN_WORD_setone(t1);
+    BN_WORD_sub(zero,q,t2);
+    while(BN_WORD_cmp(R2,one)!=0){
+        BN_WORD_copy(R2,temp);
+	BN_WORD_div(R1,R2,q,div_temp);
+	BN_WORD_copy(div_temp,R2);
+	BN_WORD_copy(temp,R1);
+	BN_WORD_copy(s2,temp);
+	BN_WORD_mul(q,s2,temp_mul);
+	BN_WORD_sub(s1,temp_mul,s2);
+	BN_WORD_copy(temp,s1);
+	BN_WORD_copy(t2,temp);
+	BN_WORD_mul(q,t2,temp_mul);
+	BN_WORD_sub(t1,temp_mul,t2);
+        BN_WORD_copy(temp,t1);
+    }
+    BN_WORD_copy(t2,n_inverse);
+    BN_WORD_free(zero);
+    BN_WORD_free(one);
+    BN_WORD_free(R1);
+    BN_WORD_free(R2);
+    BN_WORD_free(s1);
+    BN_WORD_free(s2);
+    BN_WORD_free(t1);
+    BN_WORD_free(t2);
+    BN_WORD_free(temp);
+    BN_WORD_free(q);
+    BN_WORD_free(temp_mul);
+    return 0;
+}
 
 
 __host__ int BN_NUM_inverse(const BN_NUM *n, const int d, const int l, BN_NUM *n_inverse){
@@ -54,30 +111,43 @@ __host__ int BN_NUM_inverse(const BN_NUM *n, const int d, const int l, BN_NUM *n
     return 0;
 }
 
-__host__ int BN_NUM_parallel_mod_mul(const BN_NUM *a, const BN_NUM *b, const BN_NUM *n, const int d, const int l,
-		BN_NUM *result){    	
-    BN_NUM *n_inverse, *u, *u_temp, *v, *v_temp,*m, *c ,*zero,*temp_result,*a_sub,*b_sub,*one,*R_pro;
+__host__ int BN_NUM_parallel_mod_mul(const BN_NUM *a, const BN_NUM *b, const BN_NUM *n, BN_NUM *result){    	
+#ifdef CLOCKING
+    clock_t start, stop, sumtime;
+#endif
+
+#ifdef CUDA_TIMING
+    cudaEvent_t start, stop;
+    float sum_time = 0.0;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+#endif
+
+#ifdef CUDA_TIMING
+    cudaEventRecord(start, 0);
+#endif
+
+    int wmax=a->wmax;
+    int dmax=a->word[0]->dmax;
+    BN_NUM *u, *u_temp, *v, *v_temp,*m, *c ,*temp_result,*a_sub,*b_sub;
     int *any_value;
-    BN_WORD *n0_inverse;
-    cudaMallocManaged((void **)&(any_value),d*sizeof(int));
-    zero=BN_NUM_new(d,l);
-    n_inverse=BN_NUM_new(d,l);
-    temp_result=BN_NUM_new(d,l);
-    u=BN_NUM_new(d,l);
-    u_temp=BN_NUM_new(d,l);
-    v_temp=BN_NUM_new(d,l);
-    v=BN_NUM_new(d,l);
-    m=BN_NUM_new(d,l);
-    c=BN_NUM_new(d,l);
-    a_sub=BN_NUM_new(d,l);
-    b_sub=BN_NUM_new(d,l);
-    one=BN_NUM_new(d,l);
-    R_pro=BN_NUM_new(d,l);
-    n0_inverse=BN_WORD_new(l);
-    BN_NUM_setzero(zero);
-    BN_NUM_setone(one);
+    BN_WORD *n0_inverse, *temp_word_result, *zero;
+    cudaMallocManaged((void **)&(any_value),wmax*sizeof(int));
+    temp_result=BN_NUM_new(wmax,dmax);
+    u=BN_NUM_new(wmax,dmax);
+    u_temp=BN_NUM_new(wmax,dmax);
+    v_temp=BN_NUM_new(wmax,dmax);
+    v=BN_NUM_new(wmax,dmax);
+    m=BN_NUM_new(wmax,dmax);
+    c=BN_NUM_new(wmax,dmax);
+    a_sub=BN_NUM_new(wmax,dmax);
+    b_sub=BN_NUM_new(wmax,dmax);
+    n0_inverse=BN_WORD_new(dmax);
+    zero=BN_WORD_new(dmax);
+    temp_word_result=BN_WORD_new(dmax);
     BN_NUM_copy(a,a_sub);
     BN_NUM_copy(b,b_sub);
+    BN_WORD_setzero(zero);
     while(BN_NUM_cmp(a_sub,n)==1){
         BN_NUM_sub(a_sub,n,temp_result);
 	BN_NUM_copy(temp_result,a_sub);
@@ -94,22 +164,40 @@ __host__ int BN_NUM_parallel_mod_mul(const BN_NUM *a, const BN_NUM *b, const BN_
         BN_NUM_setzero(result);
         return 0;
     }
-    BN_NUM_inverse(n,d,l,n_inverse);
-    BN_NUM_sub(zero,n_inverse,temp_result);
-    BN_NUM_copy(temp_result,n_inverse);
-    BN_WORD_copy(n_inverse->word[0],n0_inverse);
-    BN_NUM_sub(zero,n,R_pro);
-    BN_NUM_mul_mod_host(a_sub,R_pro,n,temp_result);
-    BN_NUM_copy(temp_result,a_sub);
-    BN_NUM_mul_mod_host(b_sub,R_pro,n,temp_result);
-    BN_NUM_copy(temp_result,b_sub);
-    parallel_mont_mul<<<1,d>>>(a_sub,b_sub,n,d,l,n0_inverse,temp_result,u,u_temp,v,m,c,v_temp,any_value);
+    BN_WORD_inverse(n->word[0],n0_inverse);
+    BN_WORD_sub(zero,n0_inverse,temp_word_result);
+    BN_WORD_copy(temp_word_result,n0_inverse);
+
+#ifdef CUDA_TIMING
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&sum_time, start, stop);
+    printf("pro_time:%f\n",sum_time);
+#endif
+
+#ifdef CLOCKING
+    start=clock();
+#endif
+
+#ifdef CUDA_TIMING
+    cudaEventRecord(start, 0);
+#endif
+    parallel_mont_mul<<<1,wmax>>>(a_sub,b_sub,n,wmax,dmax,n0_inverse,result,u,u_temp,v,m,c,v_temp,any_value);
     cudaDeviceSynchronize();
-    parallel_mont_mul<<<1,d>>>(temp_result,one,n,d,l,n0_inverse,result,u,u_temp,v,m,c,v_temp,any_value);
-    cudaDeviceSynchronize();
+
+#ifdef CLOCKING
+    stop=clock();
+    sumtime=stop-start;
+    printf("device_time:%ld\n",sumtime);
+#endif
+
+#ifdef CUDA_TIMING
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&sum_time, start, stop);
+    printf("device_time:%f\n",sum_time);
+#endif
     cudaFree(any_value);
-    BN_NUM_free(zero);
-    BN_NUM_free(n_inverse);
     BN_NUM_free(temp_result);
     BN_NUM_free(u);
     BN_NUM_free(u_temp);
@@ -119,7 +207,9 @@ __host__ int BN_NUM_parallel_mod_mul(const BN_NUM *a, const BN_NUM *b, const BN_
     BN_NUM_free(c);
     BN_NUM_free(a_sub);
     BN_NUM_free(b_sub);
+    BN_WORD_free(zero);
     BN_WORD_free(n0_inverse);
+    BN_WORD_free(temp_word_result);
     return 0;
 }
 
@@ -127,6 +217,18 @@ __host__ int BN_NUM_parallel_mod_mul(const BN_NUM *a, const BN_NUM *b, const BN_
 __global__ void parallel_mont_mul(const BN_NUM *a,const BN_NUM *b,const BN_NUM *n,const int wmax,const int dmax,const BN_WORD *n0_inverse,
 		BN_NUM *result, BN_NUM *u, BN_NUM *u_temp,BN_NUM *v, BN_NUM *m, BN_NUM *c,BN_NUM *v_temp, int *any_value){
     int j=threadIdx.x+blockIdx.x*blockDim.x;
+#ifdef TIMING
+    time_t start, stop , sumtime;
+    start=time(NULL);
+#endif
+
+#ifdef CLOCKING
+    clock_t start, stop , sumtime;
+    if(j==0){
+	    start=clock();
+    }
+#endif
+    
     BN_WORD_setzero(u->word[j]);
     BN_WORD_setzero(v->word[j]);
     __syncthreads();
@@ -143,6 +245,19 @@ __global__ void parallel_mont_mul(const BN_NUM *a,const BN_NUM *b,const BN_NUM *
     BN_NUM_setzero(zero_num);
 //need error_check
     
+#ifdef CLOCKING
+    if(j==0){
+       stop=clock();
+       sumtime=stop-start;
+       printf("pro_time:%ld\n",sumtime);
+    }
+#endif
+
+#ifdef CLOCKING
+    if(j==0){
+        start=clock();
+    }
+#endif
     for(int i=0;i<wmax;i++){
         mad_lo(a->word[j],b->word[i],v->word[j],u_temp->word[j],temp_result);
 	BN_WORD_copy(temp_result,v->word[j]);
@@ -179,20 +294,29 @@ __global__ void parallel_mont_mul(const BN_NUM *a,const BN_NUM *b,const BN_NUM *
 	BN_WORD_add(u->word[j],u_temp->word[j],temp_result);
 	BN_WORD_copy(temp_result,u->word[j]);
 	if(j==0){
-	    printf("i:%d\n",i);
-	    BN_NUM_print(v);
+		printf("i:%d\n,v:\n");
+		BN_NUM_print(v);
 	}
     }
-    
+#ifdef CLOCKING
+    if(j==0){
+        stop=clock();
+	sumtime=stop-start;
+ 	printf("loop_time:%ld\n",sumtime);
+    }
+#endif
+
+#ifdef CLOCKING
+    if(j==0){
+        start=clock();
+    }
+#endif
+
     BN_WORD_copy(u->word[j],c->word[j]);
     __syncthreads();
 	__syncthreads();
     any_value[j]=any(u);
     __syncthreads();
-    if(j==0){
-            printf("c:");
-            BN_NUM_print(c);
-    }
     while(any_value[j]==0){
         BN_WORD_copy(u->word[int_mod(j-1,wmax)],u_temp->word[j]);
 	__syncthreads();
@@ -218,6 +342,20 @@ __global__ void parallel_mont_mul(const BN_NUM *a,const BN_NUM *b,const BN_NUM *
     
     BN_WORD_copy(v->word[j],result->word[j]);
     __syncthreads();
+
+#ifdef CLOCKING
+    if(j==0){
+        stop=clock();
+	sumtime=stop-start;
+	printf("carry_time:%ld\n",sumtime);
+    }
+#endif
+
+#ifdef CLOCKING
+    if(j==0){
+        start=clock();
+    }
+#endif
     //need sy
     BN_WORD_copy(c->word[wmax-1],c->word[j]);
     while(BN_WORD_cmp(c->word[j],zero)==1){
@@ -235,10 +373,13 @@ __global__ void parallel_mont_mul(const BN_NUM *a,const BN_NUM *b,const BN_NUM *
         BN_NUM_sub_device(result,n,bn_temp_result);
         BN_NUM_copy(bn_temp_result,result);
     }
+#ifdef CLOCKING
     if(j==0){
-            printf("result:");
-            BN_NUM_print(result);
+        stop=clock();
+	sumtime=stop-start;
+        printf("end_time:%ld\n",sumtime);
     }
+#endif
     BN_WORD_free_device(temp_result);
     BN_WORD_free_device(zero);
     BN_WORD_free_device(one);
@@ -352,17 +493,26 @@ __host__ int BN_NUM_mul_mod_host(const BN_NUM *a, const BN_NUM *b, const BN_NUM 
 
 __host__ int BN_NUM_parallel_mont_exp(const BN_NUM *a, const BN_NUM *e, const BN_NUM *n,const int d,const int l,
                 BN_NUM *result){
+#ifdef TIMING
+    time_t start, stop, sum_time;
+#endif
+
+#ifdef TIMING
+    start = time(NULL);
+#endif
+
     int *any_value;
-    BN_WORD *n0_inverse;
-    BN_NUM *a_pro, *bn_temp, *R_pro, *zero, *one, *n_inverse, *u, *u_temp,*v,*m, *c,*v_temp;
+    BN_WORD *n0_inverse, *zero_word, *bn_word_temp;
+    BN_NUM *a_pro, *bn_temp, *R_pro, *zero, *one, *u, *u_temp,*v,*m, *c,*v_temp;
     cudaMallocManaged((void **)&(any_value),d*sizeof(int));
     n0_inverse=BN_WORD_new(l);
+    zero_word=BN_WORD_new(l);
+    bn_word_temp=BN_WORD_new(l);
     a_pro=BN_NUM_new(d,l);
     bn_temp=BN_NUM_new(d,l);
     R_pro=BN_NUM_new(d,l);
     zero=BN_NUM_new(d,l);
     one=BN_NUM_new(d,l);
-    n_inverse=BN_NUM_new(d,l);
     u=BN_NUM_new(d,l);
     v=BN_NUM_new(d,l);
     m=BN_NUM_new(d,l);
@@ -373,6 +523,7 @@ __host__ int BN_NUM_parallel_mont_exp(const BN_NUM *a, const BN_NUM *e, const BN
     BN_NUM_copy(a,a_pro);
     BN_NUM_setzero(zero);
     BN_NUM_setone(one);
+    BN_WORD_setzero(zero_word);
     while(BN_NUM_cmp(a_pro,n)==1){
         BN_NUM_sub(a_pro,n,bn_temp);
         BN_NUM_copy(bn_temp,a_pro);
@@ -382,13 +533,46 @@ __host__ int BN_NUM_parallel_mont_exp(const BN_NUM *a, const BN_NUM *e, const BN
         return 0;
     }
     BN_NUM_sub(zero,n,R_pro);
+
+#ifdef TIMING
+    stop= time(NULL);
+    sum_time= difftime(stop,start);
+    printf("pro_calculate:%d s\n", sum_time);
+#endif
+
+#ifdef TIMING
+    start= time(NULL);
+#endif
+
     BN_NUM_mul_mod_host(a_pro,R_pro,n,bn_temp);
+
+#ifdef TIMING
+    stop= time(NULL);
+    sum_time= difftime(stop,start);
+    printf("mul_mod_host:%d s\n", sum_time);
+#endif
+
     BN_NUM_copy(bn_temp,a_pro);
-    BN_NUM_inverse(n,d,l,n_inverse);
-    BN_NUM_sub(zero,n_inverse,bn_temp);
-    BN_NUM_copy(bn_temp,n_inverse);
-    BN_WORD_copy(n_inverse->word[0],n0_inverse);
+
+#ifdef TIMING
+    start= time(NULL);
+#endif
+
+    BN_WORD_inverse(n->word[0],n0_inverse);
+printf("1\n");
+#ifdef TIMING
+    stop= time(NULL);
+    sum_time= difftime(stop,start);
+    printf("inverse:%d s\n", sum_time);
+#endif
+
+    BN_WORD_sub(zero_word,n0_inverse,bn_word_temp);
+    BN_WORD_copy(bn_word_temp,n0_inverse);
     BN_NUM_copy(R_pro,result);
+
+#ifdef TIMING
+    start= time(NULL);
+#endif
 
     for(int i=d-1;i>=0;i--){
         for(int j=l-1;j>=0;j--){
@@ -406,10 +590,16 @@ __host__ int BN_NUM_parallel_mont_exp(const BN_NUM *a, const BN_NUM *e, const BN
             }
         }
     }
-/*    BN_NUM_R_inverse(n,R_inverse);
-    BN_NUM_mul_mod_host(result,R_inverse,n,bn_temp);
+
+#ifdef TIMING
+    stop= time(NULL);
+    sum_time= difftime(stop,start);
+    printf("loop:%d s\n", sum_time);
+#endif
+
+    parallel_mont_mul<<<1,d>>>(result,one,n,d,l,n0_inverse,bn_temp,u,u_temp,v,m,c,v_temp, any_value);
+    cudaDeviceSynchronize();
     BN_NUM_copy(bn_temp,result);
-    */
     return 0;
 }
 

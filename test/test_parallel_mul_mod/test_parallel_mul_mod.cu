@@ -10,7 +10,7 @@
 #endif
 
 #ifndef WMAX
-#define WMAX 1
+#define WMAX 5
 #endif
 
 using namespace std;
@@ -107,15 +107,11 @@ BN_WORD_print(bn_v);
 
 //end process
 */
-BN_mod_mul(open_temp_result,open_a,open_b,open_n,ctx);
-BN_mod_inverse(open_R_inverse,open_R,open_n,ctx);
-BN_mod_mul(open_result,open_temp_result,open_R_inverse,open_n,ctx);
-BN_mod_mul(open_mul_result,open_R_inverse,open_R,open_n,ctx);
+BN_mod_mul(open_result,open_a,open_b,open_n,ctx);
 BN_NUM_openssl_transform(open_a,bn_a,WMAX,DMAX);
 BN_NUM_openssl_transform(open_b,bn_b,WMAX,DMAX);
 BN_NUM_openssl_transform(open_n,bn_n,WMAX,DMAX);
 BN_NUM_openssl_transform(open_result,bn_result,WMAX,DMAX);
-BN_NUM_openssl_transform(open_mul_result,bn_mul_result,WMAX,DMAX);
 cout<<"open_a"<<endl;
 BN_NUM_print(bn_a);
 cout<<"open_b"<<endl;
@@ -124,8 +120,8 @@ cout<<"open_n"<<endl;
 BN_NUM_print(bn_n);
 cout<<"open_result"<<endl;
 BN_NUM_print(bn_result);
-BN_NUM_parallel_mod_mul(bn_a, bn_b,bn_n,WMAX, DMAX ,bn_word_result);
+BN_NUM_parallel_mod_mul(bn_a, bn_b,bn_n,WMAX,DMAX,bn_mul_result);
 cout<<"bn_word_result"<<endl;
-BN_NUM_print(bn_word_result);
+BN_NUM_print(bn_mul_result);
 
 }

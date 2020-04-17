@@ -6,7 +6,7 @@
 
 
 #ifndef DMAX
-#define DMAX 3
+#define DMAX 1
 #endif
 
 #ifndef WMAX
@@ -22,7 +22,7 @@ int main(){
 BIGNUM *open_a, *open_b,*open_e,*open_n,*open_result,*open_R, *open_temp;
 BN_CTX *ctx;
 BN_NUM *bn_a, *bn_b,*bn_e, *bn_n, *bn_result,*bn_word_result;
-
+/*
 //test R_inverse and test mul_mod_host
 open_a=BN_new();
 open_b=BN_new();
@@ -68,7 +68,7 @@ BN_NUM_free(bn_b);
 BN_NUM_free(bn_n);
 BN_NUM_free(bn_result);
 BN_NUM_free(bn_word_result);
-
+*/
 //test parallel_exp_mod
 
 open_a=BN_new();
