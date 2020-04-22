@@ -10,7 +10,7 @@ using namespace std;
 
 #define CUDA_TIMING
 
-#define DMAX 32
+#define DMAX 10
 
 //#define inverse
 //#define mul_host
@@ -131,7 +131,6 @@ int main(){
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);
 #endif
-
     BN_mod_mul(open_result, open_a, open_b, open_n, ctx);
 
 #ifdef CUDA_TIMING

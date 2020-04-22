@@ -32,7 +32,7 @@ __host__ __device__ int BN_WORD_mad_hi(const BN_ULONG a, const BN_ULONG b, BN_UL
     }
     return 0;
 }
-
+/*
 __host__ __device__ int BN_WORD_any(BN_WORD *a){
     int dmax=a->dmax;
     for(int i=0;i<dmax;i++){
@@ -42,3 +42,14 @@ __host__ __device__ int BN_WORD_any(BN_WORD *a){
     }
     return 1;
 }
+*/
+
+__host__ __device__ int BN_WORD_any(BN_ULONG *a, int dmax){
+    for(int i=0;i<dmax;i++){
+        if(a[i]!=0){
+            return 0;
+        }
+    }
+    return 1;
+}
+
