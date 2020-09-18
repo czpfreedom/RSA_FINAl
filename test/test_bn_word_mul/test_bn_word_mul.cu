@@ -4,12 +4,12 @@
 #include "iostream"
 
 #define DMAX 3
-#define LOOP_NUM 2000
+#define LOOP_NUM 1
 #define CUDA_TIMING
 
-//#define PRINT
+#define PRINT
 
-#define MUL
+//#define MUL
 #define DIV
 
 using namespace std;
@@ -40,8 +40,8 @@ int main(){
     open_b=BN_new();
     open_result=BN_new();
     ctx=BN_CTX_new();
-    BN_rand(open_a,DMAX*(sizeof(BN_ULONG)*8),0,0);
-    BN_rand(open_b,DMAX*(sizeof(BN_ULONG)*8),0,0);
+    BN_rand(open_a,DMAX*(sizeof(BN_PART)*8),0,0);
+    BN_rand(open_b,DMAX*(sizeof(BN_PART)*8),0,0);
 
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);
@@ -69,14 +69,13 @@ int main(){
     cout<<"new_cpu_time: "<<sum_time<<endl;
 #endif
 
-
     bn_a=BN_WORD_new(DMAX);
     bn_b=BN_WORD_new(DMAX);
     bn_result=BN_WORD_new(DMAX*2);
-    bn_word_result=BN_WORD_new(DMAX*2);
+    bn_word_result=BN_WORD_new(DMAX);
     BN_WORD_openssl_transform(open_a,bn_a,DMAX);
     BN_WORD_openssl_transform(open_b,bn_b,DMAX);
-    BN_WORD_openssl_transform(open_result,bn_result,DMAX*2);
+    BN_WORD_openssl_transform(open_result,bn_result,DMAX);
 
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);
@@ -117,8 +116,8 @@ int main(){
     open_q=BN_new();
     open_r=BN_new();
     ctx=BN_CTX_new();
-    BN_rand(open_a,DMAX*(sizeof(BN_ULONG)*8),0,0);
-    BN_rand(open_b,DMAX*(sizeof(BN_ULONG)*8),0,0);
+    BN_rand(open_a,DMAX*(sizeof(BN_PART)*8),0,0);
+    BN_rand(open_b,DMAX*(sizeof(BN_PART)*8),0,0);
 
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);

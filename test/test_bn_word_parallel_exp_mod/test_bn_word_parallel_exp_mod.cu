@@ -1,25 +1,25 @@
 #include "openssl/bn.h"
 #include "bn_word_operation.h"
 #include "bn_openssl.h"
-#include "bn_word_parallel_mont_exp.h"
+#include "bn_word_parallel_mont_glo_exp.h"
 #include "iostream"
 
-#include "parallel_mont_exp.h"
 
 using namespace std;
 
-#define CUDA_TIMING
+#define PRINT
 
-#define DMAX 10
+#define LOOP_NUM 100
+
+#define DMAX 16
 
 //#define inverse
-//#define mul_host
-#define parallel_mul_mod
+#define mul_host
+//#define parallel_mul_mod
 //#define parallel_exp_mod
+//#define parallel_exp_glo_mod
 
-#ifdef CUDA_TIMING
 #include "sys/time.h"
-#endif
 
 
 int main(){
@@ -29,41 +29,41 @@ int main(){
     BN_CTX *ctx;
 
     BN_WORD *bn_a,*bn_b,*bn_e, *bn_n, *bn_result,*bn_word_result;
-    BN_NUM *num_a, *num_b, *num_n, *num_word_result;
 
-    BN_ULONG n_inverse;
+    BN_PART n_inverse;
 
-#ifdef CUDA_TIMING
     timeval start, stop;
     double sum_time;
-#endif
 
 #ifdef inverse
+//test inverse
+    cout<<"test inverse"<<endl;
     open_a=BN_new();
-    BN_rand(open_a,sizeof(BN_ULONG)*8,0,0);
+    BN_rand(open_a,sizeof(BN_PART)*8,0,0);
     while((open_a->d[0])%2==0){
-          BN_rand(open_a,sizeof(BN_ULONG)*8,0,0);
+          BN_rand(open_a,sizeof(BN_PART)*8,0,0);
     }
     cout<<"a:"<<hex<<open_a->d[0]<<endl;
-    BN_ULONG_inverse((open_a->d[0]), n_inverse);
+    BN_PART_inverse((open_a->d[0]), n_inverse);
 
     cout<<"a_inverse:"<<hex<<n_inverse<<endl;
-    cout<<"mul:"<<hex<<((open_a->d[0])*n_inverse)<<endl;
+    cout<<"mul:"<<hex<<((((BN_PART)(open_a->d[0])))*n_inverse)<<endl;
     BN_free(open_a);
 #endif
 
 #ifdef mul_host
+
     open_a=BN_new();
     open_b=BN_new();
     open_n=BN_new();
     open_result=BN_new();
     ctx=BN_CTX_new();
 
-    BN_rand(open_a,DMAX*sizeof(BN_ULONG)*8,0,0);
-    BN_rand(open_b,DMAX*sizeof(BN_ULONG)*8,0,0);
-    BN_rand(open_n,DMAX*sizeof(BN_ULONG)*8,0,0);
+    BN_rand(open_a,DMAX*sizeof(BN_PART)*8,0,0);
+    BN_rand(open_b,DMAX*sizeof(BN_PART)*8,0,0);
+    BN_rand(open_n,DMAX*sizeof(BN_PART)*8,0,0);
 
-//    BN_mod_mul(open_result,open_a,open_b,open_n,ctx);
+    BN_mod_mul(open_result,open_a,open_b,open_n,ctx);
 
     bn_a=BN_WORD_new(DMAX);
     bn_b=BN_WORD_new(DMAX);
@@ -115,17 +115,15 @@ int main(){
     bn_result=BN_WORD_new(DMAX);
     bn_word_result=BN_WORD_new(DMAX);
 
-    num_a=BN_NUM_new(DMAX,1);
-    num_b=BN_NUM_new(DMAX,1);
-    num_n=BN_NUM_new(DMAX,1);
-    num_word_result=BN_NUM_new(DMAX,1);
+int equal=0;
+    for(int i=0;i<LOOP_NUM;i++){
 
-    BN_rand(open_a,DMAX*(sizeof(BN_ULONG)*8),0,0);
-    BN_rand(open_b,DMAX*(sizeof(BN_ULONG)*8),0,0);
-    BN_rand(open_n,DMAX*(sizeof(BN_ULONG)*8),0,0);
+    BN_rand(open_a,DMAX*(sizeof(BN_PART)*8),0,0);
+    BN_rand(open_b,DMAX*(sizeof(BN_PART)*8),0,0);
+    BN_rand(open_n,DMAX*(sizeof(BN_PART)*8),0,0);
 
     while((open_n->d[0]%2)==0){
-        BN_rand(open_n,DMAX*(sizeof(BN_ULONG)*8),0,0);
+        BN_rand(open_n,DMAX*(sizeof(BN_PART)*8),0,0);
     }
 
 #ifdef CUDA_TIMING
@@ -144,10 +142,6 @@ int main(){
     BN_WORD_openssl_transform(open_n,bn_n,DMAX);
     BN_WORD_openssl_transform(open_result,bn_result,DMAX);
 
-    BN_NUM_openssl_transform(open_a,num_a,DMAX,1);
-    BN_NUM_openssl_transform(open_b,num_b,DMAX,1);
-    BN_NUM_openssl_transform(open_n,num_n,DMAX,1);
-
 #ifdef CUDA_TIMING
     gettimeofday(&start,0);
 #endif
@@ -160,7 +154,7 @@ int main(){
     cout<<"gpu_time: "<<sum_time<<endl;
 #endif
 
-//    BN_NUM_parallel_mod_mul(num_a,num_b,num_n,DMAX,1,num_word_result);
+#ifdef PRINT
     cout<<"open_a"<<endl;
     BN_WORD_print(bn_a);
     cout<<"open_b"<<endl;
@@ -171,8 +165,12 @@ int main(){
     BN_WORD_print(bn_result);
     cout<<"bn_word_result"<<endl;
     BN_WORD_print(bn_word_result);
- //   cout<<"num_word_result"<<endl;
-//    BN_NUM_print(num_word_result);
+#endif
+
+    if(BN_WORD_cmp(bn_result,bn_word_result)!=0)
+	    equal=equal+1;
+    }
+    cout<<"equal:"<<equal<<endl;
 
     BN_free(open_a);
     BN_free(open_b);
@@ -202,44 +200,36 @@ int main(){
     bn_result=BN_WORD_new(DMAX);
     bn_word_result=BN_WORD_new(DMAX);
     
-    BN_rand(open_a,DMAX*(sizeof(BN_ULONG)*8),0,0);
-    BN_rand(open_e,DMAX*(sizeof(BN_ULONG)*8),0,0);
-    BN_rand(open_n,DMAX*(sizeof(BN_ULONG)*8),0,0);
-
-
+    BN_rand(open_a,DMAX*(sizeof(BN_PART)*8),0,0);
+    BN_rand(open_e,DMAX*(sizeof(BN_PART)*8),0,0);
+    BN_rand(open_n,DMAX*(sizeof(BN_PART)*8),0,0);
     while((open_n->d[0]%2)==0){
-        BN_rand(open_n,DMAX*(sizeof(BN_ULONG)*8),0,0);
+        BN_rand(open_n,DMAX*(sizeof(BN_PART)*8),0,0);
     }
 
-#ifdef CUDA_TIMING
     gettimeofday(&start,0);
-#endif
-    
-    BN_mod_exp(open_result, open_a, open_e, open_n, ctx);
-
-#ifdef CUDA_TIMING
+    for(int i=0; i<LOOP_NUM;i++){    
+        BN_mod_exp(open_result, open_a, open_e, open_n, ctx);
+    }
     gettimeofday(&stop,0);
     sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
     cout<<"cpu_time: "<<sum_time<<endl;
-#endif
 
     BN_WORD_openssl_transform(open_a,bn_a,DMAX);
     BN_WORD_openssl_transform(open_e,bn_e,DMAX);
     BN_WORD_openssl_transform(open_n,bn_n,DMAX);
     BN_WORD_openssl_transform(open_result,bn_result,DMAX);
 
-#ifdef CUDA_TIMING
     gettimeofday(&start,0);
-#endif
-    
-    BN_WORD_parallel_mont_exp(bn_a,bn_e,bn_n,bn_word_result);
 
-#ifdef CUDA_TIMING
+    for(int i=0; i<LOOP_NUM;i++){    
+        BN_WORD_parallel_mont_exp(bn_a,bn_e,bn_n,bn_word_result);
+    }
     gettimeofday(&stop,0);
     sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
     cout<<"gpu_time: "<<sum_time<<endl;
-#endif
 
+#ifdef PRINT
     cout<<"open_a"<<endl;
     BN_WORD_print(bn_a);
     cout<<"open_e"<<endl;
@@ -250,6 +240,7 @@ int main(){
     BN_WORD_print(bn_result);
     cout<<"bn_word_result"<<endl;
     BN_WORD_print(bn_word_result);
+#endif
 
     BN_free(open_a);
     BN_free(open_e);
@@ -261,10 +252,75 @@ int main(){
     BN_WORD_free(bn_n);
     BN_WORD_free(bn_result);
     BN_WORD_free(bn_word_result);
-
-
 #endif
 
+
+#ifdef parallel_exp_glo_mod
+    open_a=BN_new();
+    open_e=BN_new();
+    open_n=BN_new();
+    open_result=BN_new();
+    ctx=BN_CTX_new();
+    
+    bn_a=BN_WORD_new(DMAX);
+    bn_e=BN_WORD_new(DMAX);
+    bn_n=BN_WORD_new(DMAX);
+    bn_result=BN_WORD_new(DMAX);
+    bn_word_result=BN_WORD_new(DMAX);
+    
+    BN_rand(open_a,DMAX*(sizeof(BN_PART)*8),0,0);
+    BN_rand(open_e,DMAX*(sizeof(BN_PART)*8),0,0);
+    BN_rand(open_n,DMAX*(sizeof(BN_PART)*8),0,0);
+    while((open_n->d[0]%2)==0){
+        BN_rand(open_n,DMAX*(sizeof(BN_PART)*8),0,0);
+    }
+
+    gettimeofday(&start,0);
+    for(int i=0; i<LOOP_NUM;i++){    
+        BN_mod_exp(open_result, open_a, open_e, open_n, ctx);
+    }
+    gettimeofday(&stop,0);
+    sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
+    cout<<"cpu_time: "<<sum_time<<endl;
+
+    BN_WORD_openssl_transform(open_a,bn_a,DMAX);
+    BN_WORD_openssl_transform(open_e,bn_e,DMAX);
+    BN_WORD_openssl_transform(open_n,bn_n,DMAX);
+    BN_WORD_openssl_transform(open_result,bn_result,DMAX);
+
+    gettimeofday(&start,0);
+
+    for(int i=0; i<LOOP_NUM;i++){    
+        BN_WORD_parallel_mont_glo_exp(bn_a,bn_e,bn_n,bn_word_result);
+    }
+    gettimeofday(&stop,0);
+    sum_time = 1000000*(stop.tv_sec - start.tv_sec) + stop.tv_usec - start.tv_usec;
+    cout<<"gpu_time: "<<sum_time<<endl;
+
+#ifdef PRINT
+    cout<<"open_a"<<endl;
+    BN_WORD_print(bn_a);
+    cout<<"open_e"<<endl;
+    BN_WORD_print(bn_e);
+    cout<<"open_n"<<endl;
+    BN_WORD_print(bn_n);
+    cout<<"open_result"<<endl;
+    BN_WORD_print(bn_result);
+    cout<<"bn_word_result"<<endl;
+    BN_WORD_print(bn_word_result);
+#endif
+
+    BN_free(open_a);
+    BN_free(open_e);
+    BN_free(open_n);
+    BN_free(open_result);
+    BN_CTX_free(ctx);
+    BN_WORD_free(bn_a);
+    BN_WORD_free(bn_e);
+    BN_WORD_free(bn_n);
+    BN_WORD_free(bn_result);
+    BN_WORD_free(bn_word_result);
+#endif
 
     return 0;
 }

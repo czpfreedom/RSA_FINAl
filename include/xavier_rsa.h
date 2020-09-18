@@ -3,6 +3,8 @@
 
 #include "bn_num.h"
 
+typedef struct
+
 typedef struct xavier_rsa_st{
     BN_NUM *n;
     BN_NUM *e;

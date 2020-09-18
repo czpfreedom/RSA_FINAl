@@ -10,7 +10,7 @@ OPENSSL_LIB=/home/nvidia/openssl-1.1.1c
 INC=-I$(DIR_INC) -I$(OPENSSL_INC) -I/home/nvidia/openssl-1.1.1c/crypto/include
 LIB=-L$(OPENSSL_LIB) -lcrypto -lcudadevrt
 
-NVCC=nvcc -rdc=true -arch=sm_35  
+NVCC=nvcc -rdc=true -arch=sm_60 
 CC=g++
 
 

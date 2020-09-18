@@ -5,25 +5,21 @@
 
 __host__ __device__ int int_mod(const int a,const int b);
 
-__host__ __device__ int BN_ULONG_mul(const BN_ULONG a, const BN_ULONG b, BN_ULONG &u, BN_ULONG &v);
+__host__ __device__ int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u, BN_PART &v);
 
-__host__ __device__ BN_ULONG get_bit(BN_ULONG a,int i);
+__host__ __device__ BN_PART get_bit(const BN_PART a,int i);
+
+__host__ __device__ BN_PART bn_word_get_bit(const BN_WORD *a, int i);
+
+__host__ int BN_PART_inverse(const BN_PART n, BN_PART &n_inverse);
 
 __host__ BN_WORD *BN_WORD_new(int dmax);
 
 __host__ void BN_WORD_free(BN_WORD *a);
 
-__host__ BN_WORD* BN_WORD_CTX_new(int dmax, int num);
-
-__host__ void BN_WORD_CTX_free(BN_WORD *a,int num);
-
 __device__ BN_WORD *BN_WORD_new_device(int dmax);
 
 __device__ void BN_WORD_free_device(BN_WORD *a);
-
-__device__ BN_WORD* BN_WORD_CTX_new_device(int dmax, int num);
-
-__device__ void BN_WORD_CTX_free_device(BN_WORD *a,int num);
 
 __host__ __device__ void BN_WORD_setzero(BN_WORD *a); // a->0
 
@@ -41,7 +37,6 @@ __host__ __device__ int BN_WORD_cmp(const BN_WORD *a,const  BN_WORD *b);
 // 0: right
 // 1: a is bigger
 // 2: b is bigger
-
 
 __host__ __device__ int BN_WORD_left_shift(const BN_WORD *a,BN_WORD *b,int words);
 // -1: a->dmax!=b->dmax
@@ -74,7 +69,6 @@ __host__ __device__ int BN_WORD_sub(const BN_WORD *a, const BN_WORD *b, BN_WORD 
 // -4: a<b
 // 0: right
 
-
 __host__ int BN_WORD_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 
 __device__ int BN_WORD_mul_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
@@ -82,23 +76,18 @@ __device__ int BN_WORD_mul_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *r
 // -2: a'carry or b'carry !=0
 // 0: right
 
-__host__ __device__ int BN_WORD_CTX_mul_part(const BN_WORD *a, const BN_ULONG b, BN_ULONG &u, BN_WORD *v);
-
-__host__ __device__ int BN_WORD_CTX_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *u, BN_WORD *v, BN_WORD *ctx);
-//ctx num :4
-
 __host__ int BN_WORD_div(const BN_WORD *a, const BN_WORD *b, BN_WORD *q, BN_WORD *r);
 
-//__global__ void gpu_bn_word_mul(BN_WORD *a,BN_WORD *b,BN_WORD *result);
+__host__ int BN_WORD_add_mod_host(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, BN_WORD *result);
+
+__host__ int BN_WORD_mul_mod_host(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, BN_WORD *result);
+
 /*
-__host__ __device__ void BN_WORD_mul_word_bnulong(BN_WORD *a, BN_ULONG b,BN_WORD *result, BN_WORD *mid_value1, BN_WORD *mid_value2,
-                BN_WORD *mid_value5, int *return_value, int *mid_return_value);
+__host__ __device__ int BN_WORD_CTX_mul_part(const BN_WORD *a, const BN_PART b, BN_PART &u, BN_WORD *v);
+
+__host__ __device__ int BN_WORD_CTX_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *u, BN_WORD *v, BN_WORD *ctx);
 
 
-__host__ __device__ void BN_WORD_mul(BN_WORD *a, BN_WORD *b, BN_WORD *result_u,BN_WORD *result_v,BN_WORD *mul_word_result,  BN_WORD *mid_value1,
-                BN_WORD *mid_value2, BN_WORD *mid_value3,BN_WORD *mid_value4, BN_WORD *mid_value5,int *return_value,
-		int *add_return_value,int *mid_return_value);
-*/
 __host__ __device__ void BN_WORD_high (const BN_WORD *a, BN_WORD *b);
 
 __host__ __device__ void BN_WORD_low (const BN_WORD *a, BN_WORD *b);
@@ -108,5 +97,23 @@ __host__ int BN_WORD_mul_half(const BN_WORD *a, const BN_WORD *b, BN_WORD *resul
 __device__ int BN_WORD_mul_half_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 
 
+__host__ BN_WORD* BN_WORD_CTX_new(int dmax, int num);
+
+__host__ void BN_WORD_CTX_free(BN_WORD *a,int num);
+
+__device__ BN_WORD* BN_WORD_CTX_new_device(int dmax, int num);
+
+__device__ void BN_WORD_CTX_free_device(BN_WORD *a,int num);
+
+__global__ void gpu_bn_word_mul(BN_WORD *a,BN_WORD *b,BN_WORD *result);
+
+__host__ __device__ void BN_WORD_mul_word_bnulong(BN_WORD *a, BN_PART b,BN_WORD *result, BN_WORD *mid_value1, BN_WORD *mid_value2,
+                BN_WORD *mid_value5, int *return_value, int *mid_return_value);
+
+
+__host__ __device__ void BN_WORD_mul(BN_WORD *a, BN_WORD *b, BN_WORD *result_u,BN_WORD *result_v,BN_WORD *mul_word_result,  BN_WORD *mid_value1,
+                BN_WORD *mid_value2, BN_WORD *mid_value3,BN_WORD *mid_value4, BN_WORD *mid_value5,int *return_value,
+		int *add_return_value,int *mid_return_value);
+*/
 
 #endif

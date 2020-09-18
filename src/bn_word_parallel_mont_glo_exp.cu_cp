@@ -1,0 +1,240 @@
+
+#include "bn_word_parallel_mont_glo_exp.h"
+#include "stdio.h"
+#include "iostream"
+
+
+#define U   0
+#define R_U dmax
+#define V dmax*2
+#define R_V dmax*3
+#define C dmax*4
+#define R_C dmax*5
+#define M dmax*6
+#define R_M dmax*7
+
+using namespace std;
+
+__global__ void BN_WORD_parallel_mont_exp(const BN_WORD *a, const BN_WORD *e, const BN_WORD *n, const BN_PART n0_inverse, BN_WORD *square,BN_WORD *result){
+    int j=threadIdx.x+blockIdx.x*blockDim.x;
+    int dmax=a->dmax;
+    int th_j=j%dmax;
+    BN_PART p_a, p_b, p_u, p_v,ptemp_u,p_n,p_m,p_c;
+    extern __shared__ BN_PART temp[];
+    p_n=n->d[th_j];
+    for (int k=0;k<sizeof(BN_PART)*8*dmax;k++){
+//square*square
+        if(j<dmax){
+	    p_a=square->d[th_j];
+	    p_u=0;
+	    p_v=0;
+	    temp[M+th_j]=0;
+	    temp[C+th_j]=0;
+	    for(int i=0;i<dmax;i++){
+	        p_b=square->d[i];
+		BN_WORD_mad_lo(p_a,p_b,p_v,ptemp_u,p_v);
+		p_u=ptemp_u+p_u;
+		BN_WORD_mul_lo(p_v,n0_inverse,temp[M+th_j]);
+		__syncthreads();
+		p_m=temp[M+0];
+		BN_WORD_mad_lo(p_n,p_m,p_v,ptemp_u,p_v);
+		p_u=ptemp_u+p_u;
+		temp[V+th_j]=p_v;
+		__syncthreads();
+		p_v=temp[V+int_mod(th_j+1,dmax)];
+		p_v=p_u+p_v;
+		if(p_v<p_u){
+		    p_u=1;
+		}
+		else{
+		    p_u=0;
+		}
+		BN_WORD_mad_hi(p_a,p_b,p_v,ptemp_u,p_v);
+		p_u=ptemp_u+p_u;
+		BN_WORD_mad_hi(p_n,p_m,p_v,ptemp_u,p_v);
+		p_u=ptemp_u+p_u;
+	    }
+	    temp[C+th_j]=p_u;
+	    temp[U+th_j]=p_u;
+	    __syncthreads();//
+	    while(BN_WORD_any(temp+U,dmax)==0){
+	        p_u=temp[U+int_mod(th_j-1,dmax)];
+		if(th_j==0){
+		    p_u=0;
+		}
+		p_v=p_u+p_v;
+		if(p_v<p_u){
+		    p_u=1;
+		}
+		else{
+		    p_u=0;
+		}
+		temp[C+th_j]=temp[C+th_j]+p_u;
+		temp[U+th_j]=p_u;
+		__syncthreads();
+	    }
+	    square->d[th_j]=p_v;
+	    p_c=temp[C+dmax-1];
+	    if(th_j==0){
+	        while(p_c!=0){
+		    while((BN_WORD_cmp(square,n)==1)||(BN_WORD_cmp(square,n)==0)){
+		        BN_WORD_sub(square,n,square);
+    		    }
+    		    p_c=p_c-1;
+    		    BN_WORD_sub(square,n,square);
+    		}
+    		while((BN_WORD_cmp(square,n)==1)||(BN_WORD_cmp(square,n)==0)){
+		    BN_WORD_sub(square,n,square);
+    		}
+	    }
+
+/*	    if(th_j==0){
+                printf("\nsquare:\n");
+                BN_WORD_print(square);
+            }
+*/
+    	    }
+//square*result
+	else{
+	    if(bn_word_get_bit(e,k)==(BN_PART)1){
+	        p_a=square->d[th_j];
+    		p_u=0;
+    		p_v=0;
+    		temp[R_M+th_j]=0;
+    		temp[R_C+th_j]=0;
+    		for(int i=0;i<dmax;i++){
+		    p_b=result->d[i];
+    		    BN_WORD_mad_lo(p_a,p_b,p_v,ptemp_u,p_v);
+    		    p_u=ptemp_u+p_u;
+    		    BN_WORD_mul_lo(p_v,n0_inverse,temp[R_M+th_j]);
+    		    __syncthreads();
+    		    p_m=temp[R_M+0];
+    		    BN_WORD_mad_lo(p_n,p_m,p_v,ptemp_u,p_v);
+    		    p_u=ptemp_u+p_u;
+    		    temp[R_V+th_j]=p_v;
+    		    __syncthreads();
+    		    p_v=temp[R_V+int_mod(th_j+1,dmax)];
+    		    p_v=p_u+p_v;
+    		    if(p_v<p_u){
+		        p_u=1;
+    		    }
+    		    else{
+		        p_u=0;
+    		    }
+    		    BN_WORD_mad_hi(p_a,p_b,p_v,ptemp_u,p_v);
+    		    p_u=ptemp_u+p_u;
+    		    BN_WORD_mad_hi(p_n,p_m,p_v,ptemp_u,p_v);
+    		    p_u=ptemp_u+p_u;
+		}
+		temp[R_C+th_j]=p_u;
+		temp[R_U+th_j]=p_u;
+    		__syncthreads();//
+    		while(BN_WORD_any(temp+R_U,dmax)==0){
+		    p_u=temp[R_U+int_mod(th_j-1,dmax)];
+    		    if(th_j==0){
+		        p_u=0;
+    		    }
+		    p_v=p_u+p_v;
+    		    if(p_v<p_u){
+		        p_u=1;
+    		    }
+    		    else{
+		        p_u=0;
+    		    }
+    		    temp[R_C+th_j]=temp[R_C+th_j]+p_u;
+    		    temp[R_U+th_j]=p_u;
+    		    __syncthreads();
+    		}
+    		result->d[th_j]=p_v;
+    		p_c=temp[R_C+dmax-1];
+		if(th_j==0){
+		    while(p_c!=0){
+		        while((BN_WORD_cmp(result,n)==1)||(BN_WORD_cmp(result,n)==0)){
+			    BN_WORD_sub(result,n,result);
+    			}
+    			p_c=p_c-1;
+    			BN_WORD_sub(result,n,result);
+    		    }
+    		    while((BN_WORD_cmp(result,n)==1)||(BN_WORD_cmp(result,n)==0)){
+		        BN_WORD_sub(result,n,result);
+    		    }
+		}
+	    }
+/*
+	    if(th_j==0){
+	        printf("\nresult:\n");
+    		BN_WORD_print(result);
+	    }
+*/
+	}
+	__syncthreads();
+    }
+    //need mon redu
+}
+
+__host__ int BN_WORD_parallel_mont_glo_exp(const BN_WORD *a, const BN_WORD *e, const BN_WORD *n, BN_WORD *result){
+    int dmax=a->dmax;
+    BN_PART n0_inverse;
+    BN_WORD *square, *temp_result,*one, *zero,*R_pro;
+    square=BN_WORD_new(dmax);
+    temp_result=BN_WORD_new(dmax);
+    one=BN_WORD_new(dmax);
+    zero=BN_WORD_new(dmax);
+    R_pro=BN_WORD_new(dmax);
+    BN_WORD_setone(one);
+    BN_WORD_setzero(zero);
+    BN_WORD_copy(a,square);
+    while(BN_WORD_cmp(square,n)==1){
+        BN_WORD_sub(square,n,square);
+    }
+    if(BN_WORD_cmp(square,n)==0){
+        BN_WORD_setzero(result);
+        return 0;
+    }
+    BN_WORD_sub(zero,n,R_pro);
+    while(BN_WORD_cmp(R_pro,n)==1){
+        BN_WORD_sub(R_pro,n,R_pro);
+    }
+    BN_WORD_mul_mod_host(square,R_pro,n,temp_result);//
+    BN_WORD_copy(temp_result,square);
+    BN_PART_inverse(n->d[0],n0_inverse);//
+    BN_WORD_copy(R_pro,result);
+    BN_WORD_parallel_mont_exp<<<2,dmax,8*dmax*sizeof(BN_PART)>>>(a, e, n, n0_inverse, square, result);
+    cudaDeviceSynchronize();
+}
+
+__host__ int BN_WORD_parallel_mont_crt_exp(const BN_WORD *a, const BN_WORD *e_p, const BN_WORD *e_q, const BN_WORD *p, const BN_WORD *q, BN_PART *p0_inverse, BN_PART q0_inverse, BN_WORD *R_pro_p, BN_WORD *R_pro_q, BN_WORD *p_inverse_q, BN_WORD *result){
+    int dmax=a->dmax;
+    BN_WORD *p_square, *q_square, *p_result, *q_result, M2_sub_M1, temp_result;
+    p_square=BN_WORD_new(dmax);
+    q_square=BN_WORD_new(dmax);
+    p_result=BN_WORD_new(dmax);
+    q_result=BN_WORD_new(dmax);
+    M2_sub_M1=BN_WORD_new(dmax);
+    temp_result=BN_WORD_new(dmax);
+    BN_WORD_mul_mod_host(a,R_pro,p,p_square);
+    BN_WORD_mul_mod_host(a,R_pro,q,q_square);
+    BN_WORD_copy(R_pro,p_result);
+    BN_WORD_copy(R_pro,q_result);
+    cudaStream_t *stream1;
+    cudaStream_t *stream2;
+    cudaStreamCreate (&stream1);
+    cudaStreamCreate (&stream2);
+    BN_WORD_parallel_mont_exp<<<2,dmax,8*dmax*sizeof(BN_PART),stream1>>>(a, e_p, p, p0_inverse, p_square, p_result);
+    cudaDeviceSynchronize();
+    BN_WORD_parallel_mont_exp<<<2,dmax,8*dmax*sizeof(BN_PART),stream2>>>(a, e_q, q, q0_inverse, q_square, q_result);
+    cudaDeviceSynchronize();
+    BN_WORD_sub(p_result,q_result,m2_sub_m1);
+    BN_WORD_mul_mod_host(m2_sub_m1,p_inverse_q,q,temp_result);
+    BN_WORD_copy(temp_result,result);
+    BN_WORD_mul(result,p,temp_result);
+    BN_WORD_add(temp_result,p_result,result);
+}
+
+
+
+//    BN_WORD_parallel_mont_mul<<<1,dmax,4*dmax*sizeof(BN_PART)>>>(result,one,n,n0_inverse,temp_result);
+//    cudaDeviceSynchronize();
+//    BN_WORD_copy(temp_result,result);
+
+
