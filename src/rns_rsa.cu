@@ -440,71 +440,78 @@ __host__  int RNS_N:: RNS_print(){
 
 __host__ int RNS_N:: RNS_mul_mod (BN_WORD *a, BN_WORD *b, BN_WORD *result){
     int dmax=a->dmax;
-    BN_WORD *a_temp, *b_temp,*one;
+    BN_WORD *a_temp, *b_temp;
     RNS_WORD *x_result;
     a_temp=BN_WORD_new(dmax);
     b_temp=BN_WORD_new(dmax);
-    one=BN_WORD_new(dmax);
     cudaMallocManaged((void**)&(x_result),m_base_num*sizeof(RNS_WORD));
     BN_WORD_mul_mod_host(a, m_M1, m_rsa_n->n, a_temp); //a=a*M mod n
     BN_WORD_mul_mod_host(b, m_M1, m_rsa_n->n, b_temp);
-    BN_WORD_setone(one);
     if(dmax==32){
 	RNS_mul_mod_kernel_32<<<1,dmax>>>(a_temp,b_temp,m_base_num, m_m1,m_m2,m_d,m_e,m_a,m_a_2,m_b,m_b_2,m_c,x_result);
     	cudaDeviceSynchronize();
     }
     if(dmax==64){
-	RNS_mul_mod_kernel_64<<<1,dmax>>>(a_temp,b_temp,m_base_num, m_m1,m_m2,m_d,m_e,m_a,m_a_2,m_b,m_b_2,m_c,x_result);
+	RNS_mul_mod_kernel_64<<<1,dmax,dmax*sizeof(RNS_WORD)>>>(a_temp,b_temp,m_base_num, m_m1,m_m2,m_d,m_e,m_a,m_a_2,m_b,m_b_2,m_c,x_result);
 	cudaDeviceSynchronize();
     }
     if((dmax!=32)&&(dmax!=64)){
-	print("base_num is not 32 or 64, error\n");
+	printf("base_num is not 32 or 64, error!\n");
 	return -1;
     }
     RSA_RNS_reduction1(x_result,result);
-    printf("mod_mul: result1:\n");
-    BN_WORD_print(result);
-    RNS_mul_mod_kernel<<<1,dmax>>>(result,one,m_base_num, m_m1,m_m2,m_d,m_e,m_a,m_a_2,m_b,m_b_2,m_c,x_result);
-    cudaDeviceSynchronize();
-    RSA_RNS_reduction1(x_result,result);  
+    if(BN_WORD_cmp(result,m_rsa_n->n)==1){
+	BN_WORD_sub(result,m_rsa_n->n,result);
+    }
     BN_WORD_free(a_temp);
+    BN_WORD_free(b_temp);
     cudaFree(x_result);
     return 0;
 }
 
 __host__ int RNS_N:: RSA (BN_WORD *a, BN_WORD *e, BN_WORD *result){
-    int dmax=a->dmax;
-    BN_WORD *a_temp;
-    RNS_WORD *x_result;
-    a_temp=BN_WORD_new(dmax);
-    cudaMallocManaged((void**)&(x_result),m_base_num*sizeof(RNS_WORD));
-    BN_WORD_mul_mod_host(a, m_M1, m_rsa_n->n, a_temp); //a=a*M mod n
-    printf("bn_a_M:\n");
-    BN_WORD_print(a_temp);
-    if(dmax==32){
-        RSA_RNS_kernel_32<<<1,dmax*2,m_base_num*2>>>(a_temp,e,m_base_num, m_m1,m_m2,m_d,m_e,m_a,m_a_2,m_b,m_b_2,m_c,x_result);    
-    	cudaDeviceSynchronize();
-    }
-    if(dmax==64){
-        RSA_RNS_kernel_64<<<1,dmax*2,m_base_num*2>>>(a_temp,e,m_base_num, m_m1,m_m2,m_d,m_e,m_a,m_a_2,m_b,m_b_2,m_c,x_result);
-	cudaDeviceSynchronize();
-    }
-    if((dmax!=32)&&(dmax!=64)){
-        print("base_num is not 32 or 64, error\n");
+    if(a->dmax!=m_base_num){
+        printf("error:base not same\n");
 	return -1;
     }
+    BN_WORD *a_temp;
+    RNS_WORD *x_result, *x_result_shared, *x_square_shared, *x_result_1, *x_result_2, *x_square_1, *x_square_2;
+    a_temp=BN_WORD_new(m_base_num);
+    cudaMallocManaged((void**)&(x_result),m_base_num*sizeof(RNS_WORD));
+    cudaMallocManaged((void**)&(x_result_shared),m_base_num*sizeof(RNS_WORD));
+    cudaMallocManaged((void**)&(x_square_shared),m_base_num*sizeof(RNS_WORD));
+    cudaMallocManaged((void**)&(x_result_1),m_base_num*sizeof(RNS_WORD));
+    cudaMallocManaged((void**)&(x_result_2),m_base_num*sizeof(RNS_WORD));
+    cudaMallocManaged((void**)&(x_square_1),m_base_num*sizeof(RNS_WORD));
+    cudaMallocManaged((void**)&(x_square_2),m_base_num*sizeof(RNS_WORD));
+    BN_WORD_mul_mod_host(a, m_M1, m_rsa_n->n, a_temp); //a=a*M mod n
+    if(m_base_num==32){
+        RSA_RNS_kernel_32<<<1,2*m_base_num,2*m_base_num*sizeof(RNS_WORD)>>>(a_temp,e,m_base_num, m_m1,m_m2,m_d,m_e,m_a,m_a_2,m_b,m_b_2,m_c,x_result);    
+    	cudaDeviceSynchronize();
+    }
+    if(m_base_num==64){
+        RSA_RNS_kernel_64<<<1,2*m_base_num>>>(a_temp,e,m_base_num, m_m1,m_m2,m_d,m_e,m_a,m_a_2,m_b,m_b_2,m_c,x_result,x_result_shared,x_square_shared,x_result_1,x_result_2,x_square_1,x_square_2);
+	cudaDeviceSynchronize();
+    }
+    if((m_base_num!=32)&&(m_base_num!=64)){
+        printf("base_num is not 32 or 64, error\n");
+	return -2;
+    }
     RSA_RNS_reduction1(x_result,result);
+    if(BN_WORD_cmp(result,m_rsa_n->n)==1){
+        BN_WORD_sub(result,m_rsa_n->n,result);
+    }
     BN_WORD_free(a_temp);
     cudaFree(x_result);
     return 0;
 }
 
 
-__global__ void RNS_mul_mod_kernel(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,RNS_WORD *m1, RNS_WORD *m2,RNS_WORD *d,RNS_WORD *e,RNS_WORD *a, RNS_WORD *a_2,RNS_WORD *b,RNS_WORD *b_2,RNS_WORD *c,RNS_WORD *x_result){
+__global__ void RNS_mul_mod_kernel_32(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,RNS_WORD *m1, RNS_WORD *m2,RNS_WORD *d,RNS_WORD *e,RNS_WORD *a, RNS_WORD *a_2,RNS_WORD *b,RNS_WORD *b_2,RNS_WORD *c,RNS_WORD *x_result){
     int thread_id=threadIdx.x+blockIdx.x*blockDim.x;
     unsigned int mask=0xffffffff;
-    RNS_WORD x_1, x_2, y_1, y_2;
-    RNS_WORD theta,xi,theta_k,sigma,sigma_add,sigma_k,x_result_1,x_result_add,L1,L2;
+    RNS_WORD x_1, x_2, y_1, y_2,s_1,s_2;
+    RNS_WORD theta,xi,theta_k,sigma,sigma_add,sigma_k,s_1_add,L1,L2;
     float L1_float,L2_float;
     BN_WORD_RNS_WORD_mod_device(bn_a, m1[thread_id], x_1);
     BN_WORD_RNS_WORD_mod_device(bn_a, m2[thread_id], x_2);
@@ -512,16 +519,12 @@ __global__ void RNS_mul_mod_kernel(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,RNS_
     BN_WORD_RNS_WORD_mod_device(bn_b, m2[thread_id], y_2);
     x_1=rns_word_mul_mod(x_1,y_1,m1[thread_id]);
     x_2=rns_word_mul_mod(x_2,y_2,m2[thread_id]);
-    if((bn_b->d[0]!=1)||(bn_b->d[1]!=0)){
-        printf("mul_mod;x_1[%x]:%x\n",thread_id,x_1);
-    	printf("mul_mod;x_2[%x]:%x\n",thread_id,x_2);
-    }
     theta=rns_word_mul_mod(x_1,d[thread_id],m1[thread_id]);
     xi=rns_word_mul_mod(x_2,e[thread_id],m2[thread_id]);
     L1_float=0;
     sigma=0;
     for(int k=0;k<base_num;k++){
-        theta_k=__shfl_sync(mask,theta,k);
+        theta_k=__shfl_sync(mask,theta,k,32);
 	L1_float+=(float)theta_k/m1[k];
 	sigma_add=rns_word_mul_mod(a[thread_id*base_num+k],theta_k,m2[thread_id]);
 	sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_id]);
@@ -531,22 +534,122 @@ __global__ void RNS_mul_mod_kernel(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,RNS_
     sigma_add=rns_word_mul_mod(L1,a_2[thread_id],m2[thread_id]);
     sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_id]);
     L2_float=0;
-    x_result_1=0;
+    s_1=0;
     for(int k=0;k<base_num;k++){
         sigma_k=__shfl_sync(mask,sigma,k,32);
 	L2_float+=(float)sigma_k/m2[k];
-	x_result_add=rns_word_mul_mod(b[thread_id*base_num+k],sigma_k,m1[thread_id]);
-	x_result_1=rns_word_add_mod(x_result_1,x_result_add,m1[thread_id]);
+	s_1_add=rns_word_mul_mod(b[thread_id*base_num+k],sigma_k,m1[thread_id]);
+	s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_id]);
     }
     L2=(RNS_WORD)L2_float;
-    x_result_add=rns_word_mul_mod(L2,b_2[thread_id],m1[thread_id]);
-    x_result[thread_id]=rns_word_add_mod(x_result_1,x_result_add,m1[thread_id]);
-    if((bn_b->d[0]!=1)||(bn_b->d[1]!=0)){
-	printf("mul_mod;x_result[%x]:%x\n",thread_id,x_result[thread_id]);
+    s_1_add=rns_word_mul_mod(L2,b_2[thread_id],m1[thread_id]);
+    s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_id]);
+    s_2=rns_word_mul_mod(sigma,c[thread_id],m2[thread_id]);
+    theta=rns_word_mul_mod(s_1,d[thread_id],m1[thread_id]);
+    xi=rns_word_mul_mod(s_2,e[thread_id],m2[thread_id]);
+    L1_float=0;
+    sigma=0;
+    for(int k=0;k<base_num;k++){
+	theta_k=__shfl_sync(mask,theta,k,32);
+	L1_float+=(float)theta_k/m1[k];
+        sigma_add=rns_word_mul_mod(a[thread_id*base_num+k],theta_k,m2[thread_id]);
+        sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_id]);
     }
+    L1=(RNS_WORD)L1_float;
+    sigma=rns_word_add_mod(sigma,xi,m2[thread_id]);
+    sigma_add=rns_word_mul_mod(L1,a_2[thread_id],m2[thread_id]);
+    sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_id]);
+    L2_float=0;
+    s_1=0;
+    for(int k=0;k<base_num;k++){
+        sigma_k=__shfl_sync(mask,sigma,k,32);
+        L2_float+=(float)sigma_k/m2[k];
+        s_1_add=rns_word_mul_mod(b[thread_id*base_num+k],sigma_k,m1[thread_id]);
+        s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_id]);
+    }
+    L2=(RNS_WORD)L2_float;
+    s_1_add=rns_word_mul_mod(L2,b_2[thread_id],m1[thread_id]);
+    x_result[thread_id]=rns_word_add_mod(s_1,s_1_add,m1[thread_id]);
 }
 
-__global__ void RSA_RNS_kernel(BN_WORD *bn_a,BN_WORD *bn_e,int base_num,RNS_WORD *m1,RNS_WORD *m2, RNS_WORD *d,RNS_WORD *e,RNS_WORD *a, RNS_WORD *a_2,RNS_WORD *b,RNS_WORD *b_2,RNS_WORD *c,RNS_WORD *x_result){
+__global__ void RNS_mul_mod_kernel_64(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,RNS_WORD *m1, RNS_WORD *m2,RNS_WORD *d,RNS_WORD *e,RNS_WORD *a, RNS_WORD *a_2,RNS_WORD *b,RNS_WORD *b_2,RNS_WORD *c,RNS_WORD *x_result){    
+    int thread_id=threadIdx.x+blockIdx.x*blockDim.x;
+    RNS_WORD x_1, x_2, y_1, y_2,s_1,s_2;
+    RNS_WORD theta,xi,theta_k,sigma,sigma_add,sigma_k,s_1_add,L1,L2;
+    float L1_float,L2_float;
+        extern __shared__ RNS_WORD x_shared[];
+    BN_WORD_RNS_WORD_mod_device(bn_a, m1[thread_id], x_1);
+    BN_WORD_RNS_WORD_mod_device(bn_a, m2[thread_id], x_2);
+    BN_WORD_RNS_WORD_mod_device(bn_b, m1[thread_id], y_1);
+    BN_WORD_RNS_WORD_mod_device(bn_b, m2[thread_id], y_2);
+    x_1=rns_word_mul_mod(x_1,y_1,m1[thread_id]);
+    x_2=rns_word_mul_mod(x_2,y_2,m2[thread_id]);
+    theta=rns_word_mul_mod(x_1,d[thread_id],m1[thread_id]);
+    xi=rns_word_mul_mod(x_2,e[thread_id],m2[thread_id]);
+    L1_float=0;
+    sigma=0;
+    x_shared[thread_id]=theta;
+    __syncthreads();
+    for(int k=0;k<base_num;k++){
+        theta_k=x_shared[k];
+	L1_float+=(float)theta_k/m1[k];
+	sigma_add=rns_word_mul_mod(a[thread_id*base_num+k],theta_k,m2[thread_id]);
+	sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_id]);
+    }
+    L1=(RNS_WORD)L1_float;
+    sigma=rns_word_add_mod(sigma,xi,m2[thread_id]);
+    sigma_add=rns_word_mul_mod(L1,a_2[thread_id],m2[thread_id]);
+    sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_id]);
+    L2_float=0;
+    s_1=0;
+    x_shared[thread_id]=sigma;
+    __syncthreads();
+    for(int k=0;k<base_num;k++){
+        sigma_k=x_shared[k];
+	L2_float+=(float)sigma_k/m2[k];
+	s_1_add=rns_word_mul_mod(b[thread_id*base_num+k],sigma_k,m1[thread_id]);
+	s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_id]);
+    }
+    L2=(RNS_WORD)L2_float;
+    s_1_add=rns_word_mul_mod(L2,b_2[thread_id],m1[thread_id]);
+    s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_id]);
+    s_2=rns_word_mul_mod(sigma,c[thread_id],m2[thread_id]);
+
+    printf("mul_mod x_1[%x]:%x\n",thread_id,s_1);
+    printf("mul_mod x_2[%x]:%x\n",thread_id,s_2);
+
+    theta=rns_word_mul_mod(s_1,d[thread_id],m1[thread_id]);
+    xi=rns_word_mul_mod(s_2,e[thread_id],m2[thread_id]);
+    L1_float=0;
+    sigma=0;
+    x_shared[thread_id]=theta;
+    __syncthreads();
+    for(int k=0;k<base_num;k++){
+	theta_k=x_shared[k];
+	L1_float+=(float)theta_k/m1[k];
+        sigma_add=rns_word_mul_mod(a[thread_id*base_num+k],theta_k,m2[thread_id]);
+        sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_id]);
+    }
+    L1=(RNS_WORD)L1_float;
+    sigma=rns_word_add_mod(sigma,xi,m2[thread_id]);
+    sigma_add=rns_word_mul_mod(L1,a_2[thread_id],m2[thread_id]);
+    sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_id]);
+    L2_float=0;
+    s_1=0;
+    x_shared[thread_id]=sigma;
+    __syncthreads();
+    for(int k=0;k<base_num;k++){
+        sigma_k=x_shared[k];
+        L2_float+=(float)sigma_k/m2[k];
+        s_1_add=rns_word_mul_mod(b[thread_id*base_num+k],sigma_k,m1[thread_id]);
+        s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_id]);
+    }
+    L2=(RNS_WORD)L2_float;
+    s_1_add=rns_word_mul_mod(L2,b_2[thread_id],m1[thread_id]);
+    x_result[thread_id]=rns_word_add_mod(s_1,s_1_add,m1[thread_id]);
+}
+
+__global__ void RSA_RNS_kernel_32(BN_WORD *bn_a,BN_WORD *bn_e,int base_num,RNS_WORD *m1,RNS_WORD *m2, RNS_WORD *d,RNS_WORD *e,RNS_WORD *a, RNS_WORD *a_2,RNS_WORD *b,RNS_WORD *b_2,RNS_WORD *c,RNS_WORD *x_result){
     int thread_id=threadIdx.x+blockIdx.x*blockDim.x;
     int thread_j=thread_id%base_num;
     RNS_WORD x_square_1,x_square_2, x_result_1, x_result_2,L1,L2,theta, xi ,sigma,theta_k,sigma_k,sigma_add, s_1,s_1_add;
@@ -555,8 +658,6 @@ __global__ void RSA_RNS_kernel(BN_WORD *bn_a,BN_WORD *bn_e,int base_num,RNS_WORD
     extern __shared__ RNS_WORD x_shared[];
     BN_WORD_RNS_WORD_mod_device(bn_a, m1[thread_j], x_square_1);
     BN_WORD_RNS_WORD_mod_device(bn_a, m2[thread_j], x_square_2);
-    printf("bn_a_M_mod_m1[%x]:%x\n",thread_id,x_square_1);
-    printf("bn_a_M_mod_m2[%x]:%x\n",thread_id,x_square_2);
     unsigned int mask=0xffffffff;    
     for(int i=0;i<base_num;i++){
         for(int j=0;j<base_num;j++){
@@ -601,25 +702,6 @@ __global__ void RSA_RNS_kernel(BN_WORD *bn_a,BN_WORD *bn_e,int base_num,RNS_WORD
 		s_1_add=rns_word_mul_mod(L2,b_2[thread_j],m1[thread_j]);
 		x_square_1=rns_word_add_mod(s_1,s_1_add,m1[thread_j]);
 		x_square_2=rns_word_mul_mod(sigma,c[thread_j],m2[thread_j]);
-#ifdef I_BIT_0
-		if((i==0)&&(j==0)){
-		    printf("bn_a_exp_2_M_mod_m1[%x]:%x\n",thread_id,x_square_1);
-		    printf("bn_a_exp_2_M_mod_m2[%x]:%x\n",thread_id,x_square_2);
-		}
-#endif
-
-#ifdef I_BIT_1
-                if((i==0)&&(j==1)){
-                    printf("bn_a_exp_4_M_mod_m1[%x]:%x\n",thread_id,x_square_1);
-                    printf("bn_a_exp_4_M_mod_m2[%x]:%x\n",thread_id,x_square_2);
-                }
-#endif
-#ifdef I_BIT_2
-                if((i==0)&&(j==2)){
-                    printf("bn_a_exp_8_M_mod_m1[%x]:%x\n",thread_id,x_square_1);
-                    printf("bn_a_exp_8_M_mod_m2[%x]:%x\n",thread_id,x_square_2);
-                }
-#endif
 	    }
 	    //result=square*result
 	    else{
@@ -661,18 +743,6 @@ __global__ void RSA_RNS_kernel(BN_WORD *bn_a,BN_WORD *bn_e,int base_num,RNS_WORD
      			x_result_2=rns_word_mul_mod(sigma,c[thread_j],m2[thread_j]);
 		    }
 		}
-#ifdef I_BIT_0
-		if((i==0)&&(j==0)){
-		}
-#endif
-#ifdef I_BIT_1
-		if((i==0)&&(j==1)){
-		}
-#endif
-#ifdef I_BIT_2
-		if((i==0)&&(j==2)){
-		}
-#endif
 	    }
 	
         }
@@ -710,6 +780,142 @@ __global__ void RSA_RNS_kernel(BN_WORD *bn_a,BN_WORD *bn_e,int base_num,RNS_WORD
     	L2=(RNS_WORD)L2_float;
     	s_1_add=rns_word_mul_mod(L2,b_2[thread_j],m1[thread_j]);
     	x_result[thread_j]=rns_word_add_mod(s_1,s_1_add,m1[thread_j]);
+    }
+}
+
+__global__ void RSA_RNS_kernel_64(BN_WORD *bn_a, BN_WORD *bn_e, int base_num, RNS_WORD *m1, RNS_WORD *m2, RNS_WORD *d, RNS_WORD *e, RNS_WORD *a, RNS_WORD *a_2, RNS_WORD *b, RNS_WORD *b_2, RNS_WORD *c, RNS_WORD *x_result, RNS_WORD *x_result_shared, RNS_WORD *x_square_shared, RNS_WORD *x_result_1, RNS_WORD *x_result_2, RNS_WORD *x_square_1, RNS_WORD *x_square_2){
+    int thread_id=threadIdx.x+blockIdx.x*blockDim.x;
+    int thread_j=thread_id%base_num;
+    RNS_WORD L1,L2,theta, xi ,sigma,theta_k,sigma_k,sigma_add, s_1,s_1_add;
+    RNS_WORD x_1,x_2;
+    float  L1_float, L2_float;
+    int mark=0;
+    BN_WORD_RNS_WORD_mod_device(bn_a, m1[thread_j], x_square_1[thread_j]);
+    BN_WORD_RNS_WORD_mod_device(bn_a, m2[thread_j], x_square_2[thread_j]);
+    for(int i=0;i<base_num;i++){
+        for(int j=0;j<base_num;j++){
+	    __syncthreads();
+	    //square*result
+	    if(thread_id<base_num){
+                if(mark==0){
+                    x_result_1[thread_j]=x_square_1[thread_j];
+                    x_result_2[thread_j]=x_square_2[thread_j];
+                    mark=1;
+                }
+                else{
+		    x_1=rns_word_mul_mod(x_result_1[thread_j],x_square_1[thread_j],m1[thread_j]);
+		    x_2=rns_word_mul_mod(x_result_2[thread_j],x_square_2[thread_j],m2[thread_j]);
+                }
+	    }
+	    __syncthreads();
+	    if(thread_id<base_num){
+		if(get_bit(bn_e->d[i],j)==(BN_PART)1){
+		    if(mark==1){
+                        mark=2;
+		    }
+		    else{
+                        theta=rns_word_mul_mod(x_1,d[thread_j],m1[thread_j]);
+                        xi=rns_word_mul_mod(x_2,e[thread_j],m2[thread_j]);
+                        L1_float=0;
+                        sigma=0;
+                        x_result_shared[thread_id]=theta;
+                        __syncthreads();
+                        for(int k=0;k<base_num;k++){
+                                theta_k=x_result_shared[k];
+                                L1_float+=(float)theta_k/m1[k];
+                                sigma_add=rns_word_mul_mod(a[thread_j*base_num+k],theta_k,m2[thread_j]);
+                                sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_j]);
+                        }
+                        L1=(RNS_WORD)L1_float;
+                        sigma=rns_word_add_mod(sigma,xi,m2[thread_j]);
+                        sigma_add=rns_word_mul_mod(L1,a_2[thread_j],m2[thread_j]);
+                        sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_j]);
+                        L2_float=0;
+                        s_1=0;
+                        x_result_shared[thread_id]=sigma;
+                        __syncthreads();
+                        for(int k=0;k<base_num;k++){
+                                sigma_k=x_result_shared[k];
+                                L2_float+=(float)sigma_k/m2[k];
+                                s_1_add=rns_word_mul_mod(b[thread_j*base_num+k],sigma_k,m1[thread_j]);
+                                s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_j]);
+                        }
+                        L2=(RNS_WORD)L2_float;
+                        s_1_add=rns_word_mul_mod(L2,b_2[thread_j],m1[thread_j]);
+                        x_result_1[thread_j]=rns_word_add_mod(s_1,s_1_add,m1[thread_j]);
+                        x_result_2[thread_j]=rns_word_mul_mod(sigma,c[thread_j],m2[thread_j]);
+                    }
+	        }
+	    }
+	    //square=square*square
+	    else{
+                x_1=rns_word_mul_mod(x_square_1[thread_j],x_square_1[thread_j],m1[thread_j]);
+                x_2=rns_word_mul_mod(x_square_2[thread_j],x_square_2[thread_j],m2[thread_j]);
+                theta=rns_word_mul_mod(x_1,d[thread_j],m1[thread_j]);
+                xi=rns_word_mul_mod(x_2,e[thread_j],m2[thread_j]);
+                L1_float=0;
+                sigma=0;
+                x_square_shared[thread_id]=theta;
+                __syncthreads();
+                for(int k=0;k<base_num;k++){
+                    theta_k=x_square_shared[k+base_num];
+                    L1_float+=(float)theta_k/m1[k];
+                    sigma_add=rns_word_mul_mod(a[thread_j*base_num+k],theta_k,m2[thread_j]);
+                    sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_j]);
+                }
+                L1=(RNS_WORD)L1_float;
+                sigma=rns_word_add_mod(sigma,xi,m2[thread_j]);
+                sigma_add=rns_word_mul_mod(L1,a_2[thread_j],m2[thread_j]);
+                sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_j]);
+                L2_float=0;
+                s_1=0;
+                x_square_shared[thread_id]=sigma;
+                __syncthreads();
+                for(int k=0;k<base_num;k++){
+                    sigma_k=x_square_shared[k+base_num];
+                    L2_float+=(float)sigma_k/m2[k];
+                    s_1_add=rns_word_mul_mod(b[thread_j*base_num+k],sigma_k,m1[thread_j]);
+                    s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_j]);
+                }
+                L2=(RNS_WORD)L2_float;
+                s_1_add=rns_word_mul_mod(L2,b_2[thread_j],m1[thread_j]);
+                x_square_1[thread_j]=rns_word_add_mod(s_1,s_1_add,m1[thread_j]);
+                x_square_2[thread_j]=rns_word_mul_mod(sigma,c[thread_j],m2[thread_j]);
+	    }
+	    __syncthreads();	
+        }
+    }
+    if(thread_id<base_num){
+    	theta=rns_word_mul_mod(x_result_1[thread_j],d[thread_j],m1[thread_j]);
+    	xi=rns_word_mul_mod(x_result_2[thread_j],e[thread_j],m2[thread_j]);
+    	L1_float=0;
+    	sigma=0;
+	x_result_shared[thread_id]=theta;
+	__syncthreads();
+    	for(int k=0;k<base_num;k++){
+		theta_k=x_result_shared[k];
+		L1_float+=(float)theta_k/m1[k];
+		sigma_add=rns_word_mul_mod(a[thread_j*base_num+k],theta_k,m2[thread_j]);
+		sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_j]);
+    	}
+    	L1=(RNS_WORD)L1_float;
+    	sigma=rns_word_add_mod(sigma,xi,m2[thread_j]);
+    	sigma_add=rns_word_mul_mod(L1,a_2[thread_j],m2[thread_j]);
+    	sigma=rns_word_add_mod(sigma,sigma_add,m2[thread_j]);
+    	L2_float=0;
+    	s_1=0; 
+	x_result_shared[thread_id]=sigma;
+	__syncthreads();
+    	for(int k=0;k<base_num;k++){
+		sigma_k=x_result_shared[k];
+		L2_float+=(float)sigma_k/m2[k];
+		s_1_add=rns_word_mul_mod(b[thread_j*base_num+k],sigma_k,m1[thread_j]);
+		s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_j]);
+    	}		   
+    	L2=(RNS_WORD)L2_float;
+    	s_1_add=rns_word_mul_mod(L2,b_2[thread_j],m1[thread_j]);
+    	s_1=rns_word_add_mod(s_1,s_1_add,m1[thread_j]);
+	x_result[thread_id]=s_1;
     }
 }
 

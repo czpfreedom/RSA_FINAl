@@ -5,7 +5,8 @@
 
 #define RNS_WORD unsigned int 
 
-#define BASE_MAX 32
+#define BASE_MAX 64
+
 
 #define rns_word_mul_mod(a,b,n) (RNS_WORD)((((unsigned long)a)*((unsigned long)b))%((unsigned long)n))
 #define rns_word_add_mod(a,b,n) (RNS_WORD)((((unsigned long)a)+((unsigned long)b))%((unsigned long)n))
@@ -33,7 +34,7 @@ class RNS_N{
 
 public:
     RSA_N *m_rsa_n; //
-    int m_base_num; //num of m1 and m2 which is effective, depend on the size of n
+    int m_base_num; //num of m1 and m2 which is effective, depend on the size of n, m_base_num can be 32 or 64
     RNS_WORD *m_m1; //size=BASE_MAX but only base_num is effective
     RNS_WORD *m_m2; //size=BASE_MAX but only base_num is effective
     BN_WORD *m_M1; 
@@ -78,8 +79,12 @@ __host__ __device__ int RNS_WORD_BN_WORD_transform(RNS_WORD a, int bits, BN_WORD
 
 __host__ int RNS_WORD_mod_inverse(RNS_WORD a, RNS_WORD n, RNS_WORD &a_inverse); // a_inverse =a^(-1)mod n
 
-__global__ void RNS_mul_mod_kernel(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,RNS_WORD *m1, RNS_WORD *m2,RNS_WORD *d,RNS_WORD *e,RNS_WORD *a, RNS_WORD *a_2,RNS_WORD *b,RNS_WORD *b_2,RNS_WORD *c,RNS_WORD *x_result);
+__global__ void RNS_mul_mod_kernel_32(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,RNS_WORD *m1, RNS_WORD *m2,RNS_WORD *d,RNS_WORD *e,RNS_WORD *a, RNS_WORD *a_2,RNS_WORD *b,RNS_WORD *b_2,RNS_WORD *c,RNS_WORD *x_result);
 
-__global__ void RSA_RNS_kernel(BN_WORD *bn_a, BN_WORD *bn_e, int base_num, RNS_WORD *m1, RNS_WORD *m2, RNS_WORD *d, RNS_WORD *e, RNS_WORD *a, RNS_WORD *a_2, RNS_WORD *b, RNS_WORD *b_2, RNS_WORD *c, RNS_WORD *x_result); // a=a*M mod p
+__global__ void RNS_mul_mod_kernel_64(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,RNS_WORD *m1, RNS_WORD *m2,RNS_WORD *d,RNS_WORD *e,RNS_WORD *a, RNS_WORD *a_2,RNS_WORD *b,RNS_WORD *b_2,RNS_WORD *c,RNS_WORD *x_result);
+
+__global__ void RSA_RNS_kernel_32(BN_WORD *bn_a, BN_WORD *bn_e, int base_num, RNS_WORD *m1, RNS_WORD *m2, RNS_WORD *d, RNS_WORD *e, RNS_WORD *a, RNS_WORD *a_2, RNS_WORD *b, RNS_WORD *b_2, RNS_WORD *c, RNS_WORD *x_result); // a=a*M mod p
+
+__global__ void RSA_RNS_kernel_64(BN_WORD *bn_a, BN_WORD *bn_e, int base_num, RNS_WORD *m1, RNS_WORD *m2, RNS_WORD *d, RNS_WORD *e, RNS_WORD *a, RNS_WORD *a_2, RNS_WORD *b, RNS_WORD *b_2, RNS_WORD *c, RNS_WORD *x_result, RNS_WORD *x_result_shared, RNS_WORD *x_square_shared, RNS_WORD *x_result_1, RNS_WORD *x_result_2, RNS_WORD *x_square_1, RNS_WORD *x_square_2);
 
 #endif

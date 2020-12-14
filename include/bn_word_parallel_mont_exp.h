@@ -17,6 +17,7 @@ __global__ void BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, co
 #endif
 
 
+
 __host__ int BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, BN_WORD *result);
 
 __host__ int BN_WORD_parallel_mont_exp(const BN_WORD *a, const BN_WORD *e, const BN_WORD *n, BN_WORD *result);
