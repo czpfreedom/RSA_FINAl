@@ -1,6 +1,6 @@
-#ifndef BN_WORD_PARALLEL_MONT_EXP_H
-#define BN_WORD_PARALLEL_MONT_EXP_H
-#include "bn_word_pseudo.h"
+#ifndef RSA_CRT__H
+#define RSA_CRT__H
+#include "bn_word.h"
 
 #ifdef NOTEMP
 
