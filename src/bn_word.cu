@@ -414,7 +414,7 @@ __host__ int BN_WORD_mul_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *
         for(int j=sizeof(BN_PART)*8-1;j>=0;j--){
                 bit=get_bit(b_sub->d[i],j);
                 BN_WORD_add(temp_result1,temp_result1,temp_result2);
-                if((BN_WORD_cmp(temp_result1, temp_result2)==2)||(BN_WORD_cmp(temp_result1,n)==1)||(BN_WORD_cmp(temp_result1,n)==0)){
+                if((BN_WORD_cmp(temp_result1, temp_result2)==1)||(BN_WORD_cmp(temp_result2,n)==1)||(BN_WORD_cmp(temp_result2,n)==0)){
                     BN_WORD_sub(temp_result2,n,temp_result1);
                 }
                 else {
@@ -422,8 +422,8 @@ __host__ int BN_WORD_mul_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *
                 }
                 if(bit==1){
                     BN_WORD_add(temp_result1,a_sub,temp_result2);
-                    if((BN_WORD_cmp(temp_result1, temp_result2)==2)||(BN_WORD_cmp(temp_result1,n)==1)||(BN_WORD_cmp(temp_result1,n)==0)){
-                            BN_WORD_sub(temp_result1,n,temp_result2);
+                    if((BN_WORD_cmp(temp_result1, temp_result2)==1)||(BN_WORD_cmp(temp_result2,n)==1)||(BN_WORD_cmp(temp_result2,n)==0)){
+                            BN_WORD_sub(temp_result2,n,temp_result1);
                     }
                     else {
                             BN_WORD_copy(temp_result2,temp_result1);
