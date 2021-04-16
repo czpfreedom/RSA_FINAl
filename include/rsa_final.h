@@ -3,7 +3,6 @@
 
 #include "rsa_final_c.h"
 
-
 /***** BIGNUM ARRAY *****************************/
 
 typedef struct bignumber_word_array_st{

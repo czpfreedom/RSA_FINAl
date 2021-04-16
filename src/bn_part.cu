@@ -51,6 +51,11 @@ __device__ __host__ int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u
     if(v<ll){
         carry=carry+1;
     }
+    ll=v;
+    v=ll+(lh<<32);
+    if(v<ll){
+        carry=carry+1;
+    }
     hh=hh+((hl>>32)&LONG_MASK2l)+((lh>>32)&LONG_MASK2l)+carry;
     u=hh;
     return 0;

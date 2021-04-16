@@ -16,22 +16,23 @@ INC=-I$(DIR_INC) -I$(OPENSSL_INC) -I/home/nvidia/openssl-1.1.1c/crypto/include
 LIB=-L$(OPENSSL_LIB) -lssl -lcrypto -lcudadevrt -lcudart
 
 NVCC=nvcc -arch=sm_60 
-CC=g++
+CXX=g++
 
 
 CU_SRC = $(wildcard ${DIR_SRC}/*.cu)
 CU_OBJ = $(patsubst %.cu,${DIR_OBJ}/%.o,$(notdir ${CU_SRC}))
 
-CC_SRC= $(wildcard ${DIR_SRC}/*.cpp)
-CC_OBJ = $(patsubst %.cpp,${DIR_OBJ}/%.o,$(notdir ${CC_SRC}))
+CXX_SRC= $(wildcard ${DIR_SRC}/*.cpp)
+CXX_OBJ = $(patsubst %.cpp,${DIR_OBJ}/%.o,$(notdir ${CC_SRC}))
 
-$(RSA_LIB) : $(RSA_LINK) $(CU_OBJ)
+$(RSA_LIB) : $(RSA_LINK) $(CU_OBJ) $(RSA_PATH)/obj/rsa_final_c.o
 	$(NVCC) -lib $^ -o $@
 
 $(RSA_LINK) : $(CU_OBJ)
 	$(NVCC) -dlink $^ -o $@
 
-all :  $(CU_OBJ)
+$(RSA_PATH)/obj/rsa_final_c.o : $(RSA_PATH)/src/rsa_final_c.cpp
+	$(CXX) -c $(RSA_PATH)/src/rsa_final_c.cpp $(INC)  -o $(RSA_PATH)/obj/rsa_final_c.o
 
 $(DIR_OBJ)/%.o: $(DIR_SRC)/%.cu
 	$(NVCC) -dc  $< $(INC) -o $@

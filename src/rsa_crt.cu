@@ -1,7 +1,8 @@
 #include "rsa_crt.h"
 #include "stdio.h"
 
-__global__ void BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, const BN_WORD *one, const BN_PART n0_inverse, BN_WORD *result){
+__global__ void BN_WORD_parallel_Mon(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, const BN_PART n0_inverse, BN_WORD *result){
+    
     int j=threadIdx.x+blockIdx.x*blockDim.x;
     BN_PART p_a, p_b, p_u, p_v,ptemp_u,p_n,p_m;
     int dmax=a->dmax;
@@ -12,17 +13,20 @@ __global__ void BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, co
     __shared__  BN_PART V[SHARED_SIZE];
     __shared__  BN_PART A[SHARED_SIZE];
     __shared__  BN_PART B[SHARED_SIZE];
+    __shared__  BN_PART N[SHARED_SIZE];
 
     if(j==0){
 	for(int i=0; i<dmax;i++){
 	    A[i]=a->d[i];
 	    B[i]=b->d[i];
+	    N[i]=n->d[i];
 	}
     }
 
-    // Montgomery 
+    __syncthreads();
+
     p_a=A[j];
-    p_n=n->d[j];
+    p_n=N[j];
     p_u=0;
     p_v=0;
     M[j]=0;
@@ -52,12 +56,98 @@ __global__ void BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, co
         BN_PART_mad_hi(p_n,p_m,p_v,ptemp_u,p_v);
         p_u=ptemp_u+p_u;
     }
-    printf("p_v[%x]:%lx\n",j,p_v);
     C[j]=p_u;
     U[j]=p_u;
     __syncthreads();//
     while(BN_PART_any(U,dmax)==0){
-	U[int_mod(j-1,dmax)]=p_u;
+	p_u=U[int_mod(j-1,dmax)];
+        if(j==0){
+            p_u=0;
+        }
+        p_v=p_u+p_v;
+        if(p_v<p_u){
+            p_u=1;
+        }
+        else{
+            p_u=0;
+        }
+	C[j]=C[j]+p_u;
+	U[j]=p_u;
+        __syncthreads();
+    }
+    result->d[j]=p_v;
+    C[j]=C[dmax-1];
+    if(j==0){
+        while(C[j]!=0){
+	    BN_WORD_mod_device(result,n,result);
+	    C[j]=C[j]-1;
+    	    BN_WORD_sub(result,n,result);
+    	}
+	BN_WORD_mod_device(result,n,result);
+    }
+
+}
+
+__global__ void BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, const BN_WORD *one, const BN_PART n0_inverse, BN_WORD *result){
+    int j=threadIdx.x+blockIdx.x*blockDim.x;
+    BN_PART p_a, p_b, p_u, p_v,ptemp_u,p_n,p_m;
+    int dmax=a->dmax;
+
+    __shared__  BN_PART M[SHARED_SIZE];
+    __shared__  BN_PART C[SHARED_SIZE];
+    __shared__  BN_PART U[SHARED_SIZE];
+    __shared__  BN_PART V[SHARED_SIZE];
+    __shared__  BN_PART A[SHARED_SIZE];
+    __shared__  BN_PART B[SHARED_SIZE];
+    __shared__  BN_PART N[SHARED_SIZE];
+
+    if(j==0){
+	for(int i=0; i<dmax;i++){
+	    A[i]=a->d[i];
+	    B[i]=b->d[i];
+	    N[i]=n->d[i];
+	}
+    }
+
+    __syncthreads();
+
+    // Montgomery 
+    p_a=A[j];
+    p_n=N[j];
+    p_u=0;
+    p_v=0;
+    M[j]=0;
+    C[j]=0;
+
+    for(int i=0;i<dmax;i++){
+        p_b=B[i];
+        BN_PART_mad_lo(p_a,p_b,p_v,ptemp_u,p_v);
+        p_u=ptemp_u+p_u;
+        BN_PART_mul_lo(p_v,n0_inverse,M[j]);
+        __syncthreads();
+        p_m=M[0];
+        BN_PART_mad_lo(p_n,p_m,p_v,ptemp_u,p_v);
+        p_u=ptemp_u+p_u;
+	V[j]=p_v;
+        __syncthreads();
+	p_v=V[int_mod(j+1,dmax)];
+        p_v=p_u+p_v;
+        if(p_v<p_u){
+            p_u=1;
+        }
+        else{
+            p_u=0;
+        }
+        BN_PART_mad_hi(p_a,p_b,p_v,ptemp_u,p_v);
+        p_u=ptemp_u+p_u;
+        BN_PART_mad_hi(p_n,p_m,p_v,ptemp_u,p_v);
+        p_u=ptemp_u+p_u;
+    }
+    C[j]=p_u;
+    U[j]=p_u;
+    __syncthreads();//
+    while(BN_PART_any(U,dmax)==0){
+	p_u=U[int_mod(j-1,dmax)];
         if(j==0){
             p_u=0;
         }
@@ -84,7 +174,6 @@ __global__ void BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, co
     }
 
 // Montgomery Reduce
-
     if(j==0){
         for(int i=0; i<dmax;i++){
             A[i]=result->d[i];
@@ -92,6 +181,8 @@ __global__ void BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, co
         }
     }
 
+    __syncthreads();
+    
     p_a=A[j];
     p_n=n->d[j];
     p_u=0;
@@ -127,7 +218,7 @@ __global__ void BN_WORD_parallel_mont_mul(const BN_WORD *a, const BN_WORD *b, co
     U[j]=p_u;
     __syncthreads();//
     while(BN_PART_any(U,dmax)==0){
-	U[int_mod(j-1,dmax)]=p_u;
+	p_u=U[int_mod(j-1,dmax)];
         if(j==0){
             p_u=0;
         }
@@ -196,9 +287,8 @@ CRT_N ::CRT_N (RSA_N *rsa_n){
     BN_WORD_sub(m_zero,m_rsa_n->n,m_R);
 
     BN_PART_inverse(m_rsa_n->n->d[0], 0, m_n0_inverse);
+    m_n0_inverse=0-m_n0_inverse;
 
-    printf("m_R\n");
-    BN_WORD_print(m_R);
 }
 
 CRT_N :: ~CRT_N (){
@@ -211,7 +301,6 @@ int CRT_N :: CRT_MUL_MOD(BN_WORD *a, BN_WORD *b, BN_WORD *result){
     int dmax = a->dmax;
     BN_WORD *a_pro, *b_pro, *temp_result;
     
-    
     a_pro=BN_WORD_new(dmax);
     b_pro=BN_WORD_new(dmax);
     temp_result=BN_WORD_new(dmax);
@@ -223,35 +312,39 @@ int CRT_N :: CRT_MUL_MOD(BN_WORD *a, BN_WORD *b, BN_WORD *result){
     BN_WORD_copy(temp_result,a_pro);
     BN_WORD_mul_mod(b_pro,m_R,m_rsa_n->n,temp_result);
     BN_WORD_copy(temp_result,b_pro);
-
-    printf("a_pro:\n");
-    BN_WORD_print(a_pro);
-    printf("b_pro:\n");
-    BN_WORD_print(b_pro);
-
+/*
     BN_WORD_parallel_mont_mul<<<1,dmax>>>(a_pro, b_pro, m_rsa_n->n, m_one, m_n0_inverse, result);
+*/
+    BN_WORD_parallel_Mon<<<1,dmax>>>(a_pro, b_pro, m_rsa_n->n,m_n0_inverse, result);
+    cudaDeviceSynchronize();
+    BN_WORD_parallel_Mon<<<1,dmax>>>(result,m_one, m_rsa_n->n,m_n0_inverse, result);
     cudaDeviceSynchronize();
     return 0;
 }
 
 int CRT_N :: CRT_MUL_EXP(BN_WORD *a, BN_WORD *e, BN_WORD *result){
-	/*
     int dmax = a->dmax;
-    BN_WORD *square_1, *square_2, *result_2, *temp_result;
-    square_1=BN_WORD_new(dmax);
-    square_2=BN_WORD_new(dmax);
-    result_2=BN_WORD_new(dmax);
+    BN_WORD *a_pro, *temp_result;
+    a_pro=BN_WORD_new(dmax);
     temp_result=BN_WORD_new(dmax);
 
-    BN_WORD_mod(a,m_rsa_n.m_n,square_1);
-    BN_WORD_mul_mod(square_1,m_R,m_rsa_n.m_n,temp_result);
-    BN_WORD_copy(temp_result,square_1);
-    BN_WORD_copy(square_1,square_2);
-    BN_WORD_copy(m_R,result_2);
+    BN_WORD_mod(a,m_rsa_n->n,a_pro);
+    BN_WORD_mul_mod(a_pro,m_R,m_rsa_n->n,temp_result);
+    BN_WORD_copy(temp_result,a_pro);
+    BN_WORD_copy(m_R,result);
 
-    BN_WORD_parallel_mont_mul<<<1,dmax*2>>>(square_1, square_2, result_2, e, m_rsa_n.m_n , m_one, m_n0_inverse, result);
+    for(int i=dmax-1; i>=0;i--){
+        for(int j=sizeof(BN_PART)*8-1;j>=0;j--){
+	    BN_WORD_parallel_Mon<<<1,dmax>>>(result, result, m_rsa_n->n,m_n0_inverse, result); 
+	    cudaDeviceSynchronize();
+	    if(get_bit(e->d[i],j)==1){
+                BN_WORD_parallel_Mon<<<1,dmax>>>(result, a_pro, m_rsa_n->n,m_n0_inverse, result);
+		cudaDeviceSynchronize();
+	    }	    
+	}
+    }
+    BN_WORD_parallel_Mon<<<1,dmax>>>(result,m_one, m_rsa_n->n,m_n0_inverse, result);
     cudaDeviceSynchronize();
-    */
     return 0;
 
 }
