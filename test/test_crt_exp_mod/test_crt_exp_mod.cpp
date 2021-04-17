@@ -3,7 +3,7 @@
 #include "iostream"
 #include "bn/bn_lcl.h"
 
-#define DMAX 32
+#define DMAX 2
 
 using namespace std;
 
