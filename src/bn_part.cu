@@ -62,8 +62,9 @@ __device__ __host__ int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u
 }
 #endif
 
-__host__ __device__ BN_PART get_bit(const BN_PART a,int i){
+__host__ __device__ int BN_PART_get_bit(const BN_PART a,int i){
     return  (a&((BN_PART)1<<i))>>i;
+
 }
 
 __host__ int BN_PART_inverse(const BN_PART a, const BN_PART b, BN_PART &a_inverse){

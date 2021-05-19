@@ -41,6 +41,10 @@ __host__ __device__ void BN_WORD_setone(BN_WORD *a){
     }
 }
 
+__host__ int BN_WORD_copy_host(const BN_WORD *a,BN_WORD *b){
+    return BN_WORD_copy(a,b);
+}
+
 
 __host__ __device__ int BN_WORD_copy(const BN_WORD *a,BN_WORD *b){
     if(a->dmax!=b->dmax){
@@ -80,6 +84,20 @@ __device__ int BN_WORD_print_device(const BN_WORD *a){
     return 0;
 }
 
+__host__ int BN_WORD_print_log(FILE *out, BN_WORD *a){
+    fprintf(out,"dmax:%x\n", a->dmax);	
+    for(int i=(a->dmax)-1;i>=0;i--){
+#ifdef BN_PART_32
+        fprintf(out,"%x,", a->d[i]);	
+#endif
+#ifdef BN_PART_64
+        fprintf(out,"%lx,", a->d[i]);	
+#endif
+    }
+    fprintf(out,"\n");	
+    return 0;
+}
+
 __host__ __device__ int BN_WORD_cmp(const BN_WORD *a,const BN_WORD *b){
     if((a->dmax)!=(b->dmax)){
         return -1;
@@ -96,7 +114,7 @@ __host__ __device__ int BN_WORD_cmp(const BN_WORD *a,const BN_WORD *b){
 }
 
 __host__ __device__ BN_PART bn_word_get_bit(const BN_WORD *a, int i){
-    return get_bit(a->d[i/(sizeof(BN_PART)*8)],i%(sizeof(BN_PART)*8));
+    return BN_PART_get_bit(a->d[i/(sizeof(BN_PART)*8)],i%(sizeof(BN_PART)*8));
 }
 
 __host__ __device__ int BN_WORD_left_shift(const BN_WORD *a,BN_WORD *b,int words){
@@ -231,13 +249,15 @@ __host__ int BN_WORD_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
     BN_WORD_copy(a,a_temp);
     for (int i=0;i<dmax;i++){
         for(int j=0;j<sizeof(BN_PART)*8;j++){
-	    if(get_bit(b->d[i],j)==1){
+	    if(BN_PART_get_bit(b->d[i],j)==1){
 	        BN_WORD_add(result_temp,a_temp,result_temp);
 	    }
 	    BN_WORD_left_shift_bits(a,a_temp,i*sizeof(BN_PART)*8+j+1);
 	}
     }
     BN_WORD_copy(result_temp,result);
+    BN_WORD_free(result_temp);
+    BN_WORD_free(a_temp);
     return 0;
 }
 
@@ -251,13 +271,15 @@ __device__ int BN_WORD_mul_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *r
     BN_WORD_copy(a,a_temp);
     for (int i=0;i<dmax;i++){
         for(int j=0;j<sizeof(BN_PART)*8;j++){
-            if(get_bit(b->d[i],j)==1){
+            if(BN_PART_get_bit(b->d[i],j)==1){
                 BN_WORD_add(result_temp,a_temp,result_temp);
             }
             BN_WORD_left_shift_bits(a,a_temp,i*sizeof(BN_PART)*8+j);
         }
     }
     BN_WORD_copy(result_temp,result);
+    BN_WORD_free_device(result_temp);
+    BN_WORD_free_device(a_temp);
     return 0;
 }
 
@@ -385,6 +407,10 @@ __host__ int BN_WORD_add_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *
         BN_WORD_sub(temp_result,n,temp_result);
     }
     BN_WORD_copy(temp_result,result);
+    BN_WORD_free(q);
+    BN_WORD_free(a_temp);
+    BN_WORD_free(b_temp);
+    BN_WORD_free(temp_result);
     return 0;
 }
 
@@ -412,7 +438,7 @@ __host__ int BN_WORD_mul_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *
     BN_WORD_setzero(temp_result2);
     for(int i=dmax-1;i>=0;i--){
         for(int j=sizeof(BN_PART)*8-1;j>=0;j--){
-                bit=get_bit(b_sub->d[i],j);
+                bit=BN_PART_get_bit(b_sub->d[i],j);
                 BN_WORD_add(temp_result1,temp_result1,temp_result2);
                 if((BN_WORD_cmp(temp_result1, temp_result2)==1)||(BN_WORD_cmp(temp_result2,n)==1)||(BN_WORD_cmp(temp_result2,n)==0)){
                     BN_WORD_sub(temp_result2,n,temp_result1);

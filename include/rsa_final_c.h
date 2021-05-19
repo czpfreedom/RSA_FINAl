@@ -20,7 +20,7 @@ extern "C" {
 
 typedef struct bignumber_word_st{
     int dmax;
-    BN_PART*d;
+    BN_PART *d;
 }BN_WORD;
 
 BN_WORD *BN_WORD_new(int dmax);

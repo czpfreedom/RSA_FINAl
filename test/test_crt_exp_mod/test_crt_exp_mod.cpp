@@ -3,7 +3,7 @@
 #include "iostream"
 #include "bn/bn_lcl.h"
 
-#define DMAX 2
+#define DMAX 32
 
 using namespace std;
 
@@ -43,7 +43,9 @@ int main(){
     CRT_N crt_n(rsa_n);
 
     BN_mod_exp(open_result, open_a, open_e, open_n, ctx);
-    crt_n.CRT_MUL_EXP(bn_a, bn_e, bn_result);
+    crt_n.CRT_EXP_MOD(bn_a, bn_e, bn_result);
+
+    RSA_N_free(rsa_n);
 
     cout<<"open_result"<<endl;
     BN_OPEN_PRINT(open_result);

@@ -2,6 +2,7 @@
 #define BN_WORD_H
 
 #include "bn_part.h"
+#include "stdio.h"
 
 __device__ BN_WORD *BN_WORD_new_device(int dmax);
 
@@ -16,6 +17,8 @@ __host__ __device__ int BN_WORD_copy(const BN_WORD *a,BN_WORD *b);
 //0: right
 
 __device__ int BN_WORD_print_device(const BN_WORD *a);
+
+__host__ int BN_WORD_print_log(FILE *out, BN_WORD *a);
 
 __host__ __device__ int BN_WORD_cmp(const BN_WORD *a,const  BN_WORD *b);
 // -1: a->dmax!=b->dmax

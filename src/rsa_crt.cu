@@ -312,17 +312,18 @@ int CRT_N :: CRT_MUL_MOD(BN_WORD *a, BN_WORD *b, BN_WORD *result){
     BN_WORD_copy(temp_result,a_pro);
     BN_WORD_mul_mod(b_pro,m_R,m_rsa_n->n,temp_result);
     BN_WORD_copy(temp_result,b_pro);
-/*
-    BN_WORD_parallel_mont_mul<<<1,dmax>>>(a_pro, b_pro, m_rsa_n->n, m_one, m_n0_inverse, result);
-*/
     BN_WORD_parallel_Mon<<<1,dmax>>>(a_pro, b_pro, m_rsa_n->n,m_n0_inverse, result);
     cudaDeviceSynchronize();
     BN_WORD_parallel_Mon<<<1,dmax>>>(result,m_one, m_rsa_n->n,m_n0_inverse, result);
     cudaDeviceSynchronize();
+    BN_WORD_free(a_pro);
+    BN_WORD_free(b_pro);
+    BN_WORD_free(temp_result);
     return 0;
 }
 
-int CRT_N :: CRT_MUL_EXP(BN_WORD *a, BN_WORD *e, BN_WORD *result){
+int CRT_N :: CRT_EXP_MOD(BN_WORD *a, BN_WORD *e, BN_WORD *result){
+    
     int dmax = a->dmax;
     BN_WORD *a_pro, *temp_result;
     a_pro=BN_WORD_new(dmax);
@@ -333,18 +334,22 @@ int CRT_N :: CRT_MUL_EXP(BN_WORD *a, BN_WORD *e, BN_WORD *result){
     BN_WORD_copy(temp_result,a_pro);
     BN_WORD_copy(m_R,result);
 
+
     for(int i=dmax-1; i>=0;i--){
         for(int j=sizeof(BN_PART)*8-1;j>=0;j--){
 	    BN_WORD_parallel_Mon<<<1,dmax>>>(result, result, m_rsa_n->n,m_n0_inverse, result); 
 	    cudaDeviceSynchronize();
-	    if(get_bit(e->d[i],j)==1){
+	    if(BN_PART_get_bit(e->d[i],j)==1){
                 BN_WORD_parallel_Mon<<<1,dmax>>>(result, a_pro, m_rsa_n->n,m_n0_inverse, result);
 		cudaDeviceSynchronize();
-	    }	    
+	    }
 	}
     }
+
     BN_WORD_parallel_Mon<<<1,dmax>>>(result,m_one, m_rsa_n->n,m_n0_inverse, result);
     cudaDeviceSynchronize();
+    BN_WORD_free(a_pro);
+    BN_WORD_free(temp_result);
     return 0;
 
 }

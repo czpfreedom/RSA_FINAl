@@ -1,4 +1,5 @@
 #include "rsa_final_c.h"
+#include "stdio.h"
 
 #define DMAX 2
 
@@ -18,6 +19,7 @@ int main(){
     bn_n->d[0]=0x8b7372832abfad11;
     bn_n->d[1]=0xb619eb0eec80947;
 
+    BN_mod_exp_cuda(bn_result,bn_a,bn_e,bn_n);
     BN_mod_exp_cuda(bn_result,bn_a,bn_e,bn_n);
     printf("%lx,%lx\n",bn_result->d[1],bn_result->d[0]);
 

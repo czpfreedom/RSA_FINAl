@@ -16,6 +16,8 @@ void BN_WORD_ARRAY_free(BN_WORD_ARRAY *a);
 
 int BN_WORD_print(const BN_WORD *a);
 
+int BN_WORD_copy_host(const BN_WORD *a,BN_WORD *b);
+
 int BN_WORD_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
 /************************************************/
 
@@ -46,8 +48,8 @@ public:
     ~CRT_N ();
 
     int CRT_MUL_MOD(BN_WORD *a, BN_WORD *b, BN_WORD *result);
-    int CRT_MUL_EXP(BN_WORD *a, BN_WORD *e, BN_WORD *result);
-    int CRT_MUL_EXP_ARRAY(BN_WORD_ARRAY *a, BN_WORD_ARRAY *b, BN_WORD_ARRAY *result);
+    int CRT_EXP_MOD(BN_WORD *a, BN_WORD *e, BN_WORD *result);
+    int CRT_EXP_MOD_ARRAY(BN_WORD_ARRAY *a, BN_WORD_ARRAY *b, BN_WORD_ARRAY *result);
 };
 /************************************************/
 
