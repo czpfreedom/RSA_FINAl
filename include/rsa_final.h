@@ -49,6 +49,7 @@ public:
 
     int CRT_MUL_MOD(BN_WORD *a, BN_WORD *b, BN_WORD *result);
     int CRT_EXP_MOD(BN_WORD *a, BN_WORD *e, BN_WORD *result);
+    int CRT_EXP_MOD_PARALL(BN_WORD *a, BN_WORD *e, BN_WORD *result);
     int CRT_EXP_MOD_ARRAY(BN_WORD_ARRAY *a, BN_WORD_ARRAY *b, BN_WORD_ARRAY *result);
 };
 /************************************************/

@@ -1,4 +1,4 @@
-RSA_PATH=/home/nx2/rsa_final
+RSA_PATH=/home/nx2/rsa_final_new
 
 DIR_INC = $(RSA_PATH)/include
 DIR_SRC = $(RSA_PATH)/src
