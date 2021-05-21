@@ -32,6 +32,8 @@ CXX_OBJ = $(patsubst %.cpp,${DIR_OBJ}/%.o,$(notdir ${CXX_SRC}))
 TEST_BN_WORD=$(DIR_TEST)/test_bn_word
 TEST_CRT_MUL_MOD=$(DIR_TEST)/test_crt_mul_mod
 TEST_CRT_EXP_MOD=$(DIR_TEST)/test_crt_exp_mod
+TEST_CRT_EXP_MOD_PARALL=$(DIR_TEST)/test_crt_exp_mod_parall
+TEST_CRT_EXP_MOD_PARALL_ARRAY=$(DIR_TEST)/test_crt_exp_mod_parall_array
 TEST_CRT_EXP_MOD_C=$(DIR_TEST)/test_crt_exp_mod_c
 TEST_CRT_EXP_MOD_PARTICULAR=$(DIR_TEST)/test_crt_exp_mod_particular
 
@@ -47,7 +49,7 @@ $(DIR_OBJ)/%.o: $(DIR_SRC)/%.cpp
 $(DIR_OBJ)/%.o: $(DIR_SRC)/%.cu
 	$(NVCC) -dc  --compiler-options '-fPIC' $< $(INC) -o $@
 
-clean:  clean_test_bn_word clean_test_crt_mul_mod clean_test_crt_exp_mod clean_test_crt_exp_mod_c clean_test_crt_exp_mod_particular
+clean:  clean_test_bn_word clean_test_crt_mul_mod clean_test_crt_exp_mod clean_test_crt_exp_mod_parall clean_test_crt_exp_mod_parall_array clean_test_crt_exp_mod_c clean_test_crt_exp_mod_particular
 	rm -f $(DIR_OBJ)/*.o
 	rm -f $(DIR_LIB)/*.o
 	rm -f $(DIR_LIB)/*.a
@@ -63,6 +65,14 @@ clean_test_crt_mul_mod :
 clean_test_crt_exp_mod :
 	rm -f $(TEST_CRT_EXP_MOD)/*.o
 	rm -f $(TEST_CRT_EXP_MOD)/test_crt_exp_mod
+
+clean_test_crt_exp_mod_parall :
+	rm -f $(TEST_CRT_EXP_MOD_PARALL)/*.o
+	rm -f $(TEST_CRT_EXP_MOD_PARALL)/test_crt_exp_mod_parall
+
+clean_test_crt_exp_mod_parall_array :
+	rm -f $(TEST_CRT_EXP_MOD_PARALL_ARRAY)/*.o
+	rm -f $(TEST_CRT_EXP_MOD_PARALL_ARRAY)/test_crt_exp_mod_parall_array
 
 clean_test_crt_exp_mod_c :
 	rm -f $(TEST_CRT_EXP_MOD_C)/*.o
