@@ -1,5 +1,17 @@
 #include "rsa_crt.h"
 #include "stdio.h"
+#include <ctime>
+#include "iostream"
+#include <sys/time.h>
+
+using namespace std;
+
+double cpuSecond() {
+    struct timeval tp;
+    gettimeofday(&tp,NULL);
+    return ((double)tp.tv_sec + (double)tp.tv_usec*1.e-6);
+}
+
 
 __global__ void BN_WORD_parallel_Mon(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, const BN_PART n0_inverse, BN_WORD *result){
     
@@ -750,12 +762,19 @@ int CRT_N :: CRT_EXP_MOD_ARRAY(BN_WORD_ARRAY *a, BN_WORD_ARRAY *e, BN_WORD_ARRAY
     int word_num = a->word_num;
     int dmax = a->bn_word[0]->dmax;
     BN_WORD_ARRAY *a_pro, *temp_result, *square_1, *square_2, *result_2;
+
+    clock_t time_start=clock();
+    
     a_pro=BN_WORD_ARRAY_new(word_num, dmax);
     temp_result=BN_WORD_ARRAY_new(word_num, dmax);
     square_1=BN_WORD_ARRAY_new(word_num, dmax);
     square_2=BN_WORD_ARRAY_new(word_num, dmax);
     result_2=BN_WORD_ARRAY_new(word_num, dmax);
+    
+    clock_t time_end=clock();
+    cout<<"new time use:"<<1000*(time_end-time_start)/(double)CLOCKS_PER_SEC<<"ms"<<endl;
 
+    time_start=clock();
     for(int i=0;i<word_num;i++){
 	BN_WORD_mod(a->bn_word[i],m_rsa_n->n,a_pro->bn_word[i]);
     	BN_WORD_mul_mod(a_pro->bn_word[i],m_R,m_rsa_n->n,temp_result->bn_word[i]);
@@ -765,13 +784,25 @@ int CRT_N :: CRT_EXP_MOD_ARRAY(BN_WORD_ARRAY *a, BN_WORD_ARRAY *e, BN_WORD_ARRAY
     	BN_WORD_copy(m_R,result_2->bn_word[i]);
     }
 
+    time_end=clock();
+    cout<<"init time use:"<<1000*(time_end-time_start)/(double)CLOCKS_PER_SEC<<"ms"<<endl;
+    
+    time_start=clock();
+    double iStart = cpuSecond();
     BN_WORD_ARRAY_parallel_mont_exp<<<word_num,2*dmax>>>(dmax, square_1, square_2, result_2, e, m_rsa_n->n , m_one, m_n0_inverse, result);
     cudaDeviceSynchronize();
+    double iElaps = cpuSecond() - iStart;
+    time_end=clock();
+    cout<<"iElaps:"<<iElaps<<endl;
+    cout<<"calculate time use:"<<1000*(time_end-time_start)/(double)CLOCKS_PER_SEC<<"ms"<<endl;
 
+    time_start=clock();
     BN_WORD_ARRAY_free(a_pro);
     BN_WORD_ARRAY_free(temp_result);
     BN_WORD_ARRAY_free(square_1);
     BN_WORD_ARRAY_free(square_2);
     BN_WORD_ARRAY_free(result_2);
+    time_end=clock();
+    cout<<"free time use:"<<1000*(time_end-time_start)/(double)CLOCKS_PER_SEC<<"ms"<<endl;
     return 0;
 }

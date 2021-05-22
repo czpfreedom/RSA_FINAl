@@ -2,8 +2,9 @@
 #include "bn_openssl.h"
 #include "iostream"
 #include "bn/bn_lcl.h"
+#include <ctime>
 
-#define WORD_NUM 512
+#define WORD_NUM 256
 #define DMAX 32
 
 using namespace std;
@@ -41,13 +42,16 @@ int main(){
 	BN_WORD_openssl_transform(open_result,bn_open_result->bn_word[i],DMAX);
     }
 
+    clock_t time_start=clock();
     crt_n.CRT_EXP_MOD_ARRAY(bn_a,bn_e,bn_result);
+    clock_t time_end=clock();
+    cout<<"total time use:"<<1000*(time_end-time_start)/(double)CLOCKS_PER_SEC<<"ms"<<endl;
+    printf("bn_open_result[%x]:\n",WORD_NUM-1);
+    BN_WORD_print(bn_open_result->bn_word[WORD_NUM-1]);
+    printf("bn_result[%x]:\n",WORD_NUM-1);
+    BN_WORD_print(bn_result->bn_word[WORD_NUM-1]);
 /*    
     for(int i=0;i<WORD_NUM;i++){
-        printf("bn_open_result[%x]:\n",i);
-	BN_WORD_print(bn_open_result->bn_word[i]);
-        printf("bn_result[%x]:\n",i);
-	BN_WORD_print(bn_result->bn_word[i]);
     }
 */
     RSA_N_free(rsa_n);
