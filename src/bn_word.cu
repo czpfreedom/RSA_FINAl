@@ -465,3 +465,39 @@ __host__ int BN_WORD_mul_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *
     return 0;
 }
 
+
+#ifdef BN_PART_64
+__host__ __device__ int BN_PART_BN_WORD_transform(BN_PART a, BN_WORD *result){
+    BN_WORD_setzero(result);
+    result->d[0]=a;
+    return 0;
+}
+
+__host__ int BN_WORD_BN_PART_mod (BN_WORD *a, BN_PART n, BN_PART &result){
+    int dmax=a->dmax;
+    BN_WORD *word_n;
+    BN_WORD *word_result;
+    word_n=BN_WORD_new(dmax);
+    word_result=BN_WORD_new(dmax);
+    BN_PART_BN_WORD_transform(n,word_n);
+    BN_WORD_mod(a,word_n,word_result);
+    result=word_result->d[0];
+    BN_WORD_free(word_n);
+    BN_WORD_free(word_result);
+    return 0;
+}
+
+__device__ int BN_WORD_BN_PART_mod_device (BN_WORD *a, BN_PART n, BN_PART &result){
+    int dmax=a->dmax;
+    BN_WORD *word_n,*word_result;
+    word_n=BN_WORD_new_device(dmax);
+    word_result=BN_WORD_new_device(dmax);
+    BN_PART_BN_WORD_transform(n,word_n);
+    BN_WORD_mod_device(a,word_n,word_result);
+    result=word_result->d[0];
+    BN_WORD_free_device(word_n);
+    BN_WORD_free_device(word_result);
+    return 0;
+}
+
+#endif

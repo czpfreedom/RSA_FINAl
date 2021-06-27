@@ -36,6 +36,7 @@ TEST_CRT_EXP_MOD_PARALL=$(DIR_TEST)/test_crt_exp_mod_parall
 TEST_CRT_EXP_MOD_PARALL_ARRAY=$(DIR_TEST)/test_crt_exp_mod_parall_array
 TEST_CRT_EXP_MOD_C=$(DIR_TEST)/test_crt_exp_mod_c
 TEST_CRT_EXP_MOD_PARTICULAR=$(DIR_TEST)/test_crt_exp_mod_particular
+TEST_RNS_MUL_MOD=$(DIR_TEST)/test_rns_mul_mod
 
 $(RSA_LIB) : $(RSA_LINK) $(CC_OBJ) $(CXX_OBJ) $(CU_OBJ)
 	$(NVCC) -lib $^ -o $@
@@ -49,7 +50,7 @@ $(DIR_OBJ)/%.o: $(DIR_SRC)/%.cpp
 $(DIR_OBJ)/%.o: $(DIR_SRC)/%.cu
 	$(NVCC) -dc  --compiler-options '-fPIC' $< $(INC) -o $@
 
-clean:  clean_test_bn_word clean_test_crt_mul_mod clean_test_crt_exp_mod clean_test_crt_exp_mod_parall clean_test_crt_exp_mod_parall_array clean_test_crt_exp_mod_c clean_test_crt_exp_mod_particular
+clean:  clean_test_bn_word clean_test_crt_mul_mod clean_test_crt_exp_mod clean_test_crt_exp_mod_parall clean_test_crt_exp_mod_parall_array clean_test_crt_exp_mod_c clean_test_crt_exp_mod_particular clean_test_rns_mul_mod
 	rm -f $(DIR_OBJ)/*.o
 	rm -f $(DIR_LIB)/*.o
 	rm -f $(DIR_LIB)/*.a
@@ -81,3 +82,7 @@ clean_test_crt_exp_mod_c :
 clean_test_crt_exp_mod_particular :
 	rm -f $(TEST_CRT_EXP_MOD_PARTICULAR)/*.o
 	rm -f $(TEST_CRT_EXP_MOD_PARTICULAR)/test_crt_exp_mod_particular
+
+clean_test_rns_mul_mod :
+	rm -f $(TEST_RNS_MUL_MOD)/*.o
+	rm -f $(TEST_RNS_MUL_MOD)/test_rns_mul_mod

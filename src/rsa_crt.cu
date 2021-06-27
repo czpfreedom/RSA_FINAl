@@ -650,7 +650,7 @@ CRT_N ::CRT_N (RSA_N *rsa_n){
     BN_WORD_setone(m_one);
     BN_WORD_sub(m_zero,m_rsa_n->n,m_R);
 
-    BN_PART_inverse(m_rsa_n->n->d[0], 0, m_n0_inverse);
+    BN_PART_mod_inverse(m_rsa_n->n->d[0], 0, m_n0_inverse);
     m_n0_inverse=0-m_n0_inverse;
 
 }

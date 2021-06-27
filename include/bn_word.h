@@ -68,4 +68,11 @@ __host__ int BN_WORD_add_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *
 
 __host__ int BN_WORD_mul_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, BN_WORD *result);
 
+__host__ __device__ int BN_PART_BN_WORD_transform(BN_PART a, BN_WORD *result);
+
+__host__ int BN_WORD_BN_PART_mod (BN_WORD *a, BN_PART n, BN_PART &result);
+
+__device__ int BN_WORD_BN_PART_mod_device (BN_WORD *a, BN_PART n, BN_PART &result);
+
+
 #endif

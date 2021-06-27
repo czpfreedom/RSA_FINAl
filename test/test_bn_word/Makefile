@@ -6,5 +6,5 @@ test_bn_word : bn_openssl.o test_bn_word.o $(RSA_LIB)
 bn_openssl.o : bn_openssl.cpp
 	$(CXX) -c  $< $(INC) -o $@
 
-test_bn_word.o : test_bn_word.cpp
-	$(CXX) -c  $< $(INC) -o $@
+test_bn_word.o : test_bn_word.cu
+	$(NVCC) -c  $< $(INC) -o $@

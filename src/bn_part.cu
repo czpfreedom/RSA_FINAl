@@ -67,7 +67,7 @@ __host__ __device__ int BN_PART_get_bit(const BN_PART a,int i){
 
 }
 
-__host__ int BN_PART_inverse(const BN_PART a, const BN_PART b, BN_PART &a_inverse){
+__host__ int BN_PART_mod_inverse(const BN_PART a, const BN_PART b, BN_PART &a_inverse){
     BN_PART temp, R1, R2, t1,t2,q;
     if(b==0){
         R1=a;
@@ -144,3 +144,53 @@ __host__ __device__ int BN_PART_any(BN_PART *a, int dmax){
     }
     return 1;
 }
+
+#ifdef BN_PART_32
+__host__ __device__ int BN_PART_add_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
+    result = (BN_PART)((((unsigned long)a)+((unsigned long)b))%((unsigned long)n));
+    return 0;
+}
+
+__host__ __device__ int BN_PART_mul_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
+    result = (BN_PART)((((unsigned long)a)*((unsigned long)b))%((unsigned long)n));
+    return 0;
+}
+
+#endif
+
+
+#ifdef BN_PART_64
+__host__ __device__ int BN_PART_add_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
+    a=a%n;
+    b=b%n;
+    BN_PART temp_result=a+b;
+    if(temp_result<a){
+	result=temp_result-n;
+    }
+    else{
+        result=temp_result%n;
+    }
+
+    return 0;
+}
+
+__host__ __device__ int BN_PART_mul_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
+    a=a%n;
+    b=b%n;
+    BN_PART temp_result=0;
+    while(b>0){
+	if(b&1){
+	    BN_PART_add_mod(temp_result,a,n,temp_result);
+	}
+	BN_PART_add_mod(a,a,n,a);
+	b>>=1;
+    }
+    result=temp_result;
+
+    return 0;
+}
+
+#endif
+
+
+
