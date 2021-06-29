@@ -29,6 +29,8 @@ CC_OBJ = $(patsubst %.c,${DIR_OBJ}/%.o,$(notdir ${CC_SRC}))
 CXX_SRC= $(wildcard ${DIR_SRC}/*.cpp)
 CXX_OBJ = $(patsubst %.cpp,${DIR_OBJ}/%.o,$(notdir ${CXX_SRC}))
 
+
+TEST_BN_PART=$(DIR_TEST)/test_bn_part
 TEST_BN_WORD=$(DIR_TEST)/test_bn_word
 TEST_CRT_MUL_MOD=$(DIR_TEST)/test_crt_mul_mod
 TEST_CRT_EXP_MOD=$(DIR_TEST)/test_crt_exp_mod
@@ -50,10 +52,14 @@ $(DIR_OBJ)/%.o: $(DIR_SRC)/%.cpp
 $(DIR_OBJ)/%.o: $(DIR_SRC)/%.cu
 	$(NVCC) -dc  --compiler-options '-fPIC' $< $(INC) -o $@
 
-clean:  clean_test_bn_word clean_test_crt_mul_mod clean_test_crt_exp_mod clean_test_crt_exp_mod_parall clean_test_crt_exp_mod_parall_array clean_test_crt_exp_mod_c clean_test_crt_exp_mod_particular clean_test_rns_mul_mod
+clean:  clean_test_bn_part clean_test_bn_word clean_test_crt_mul_mod clean_test_crt_exp_mod clean_test_crt_exp_mod_parall clean_test_crt_exp_mod_parall_array clean_test_crt_exp_mod_c clean_test_crt_exp_mod_particular clean_test_rns_mul_mod
 	rm -f $(DIR_OBJ)/*.o
 	rm -f $(DIR_LIB)/*.o
 	rm -f $(DIR_LIB)/*.a
+
+clean_test_bn_part :
+	rm -f $(TEST_BN_PART)/*.o
+	rm -f $(TEST_BN_PART)/test_bn_part
 
 clean_test_bn_word :
 	rm -f $(TEST_BN_WORD)/*.o

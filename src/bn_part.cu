@@ -78,12 +78,10 @@ __host__ int BN_PART_mod_inverse(const BN_PART a, const BN_PART b, BN_PART &a_in
         t2=0-q;
     }
     else{
-        R1=a;
-        R2=b;
-        t1=1;
-        q=R2/R1;
-        R2=R2%R1;
-        t2=0-q;
+	R1=a;
+	R2=b;
+	t1=1;
+	t2=0;
     }
     while(R2!=0){
         temp=R2;
@@ -95,7 +93,12 @@ __host__ int BN_PART_mod_inverse(const BN_PART a, const BN_PART b, BN_PART &a_in
         t1=temp;
     }
     if(R1==1){
-        a_inverse=t1;
+	if(b==0){
+	    a_inverse=t1;
+	}
+	else {
+            a_inverse=t1%b;	
+	}
         return 0;
     }
     else{
