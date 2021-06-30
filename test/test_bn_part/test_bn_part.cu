@@ -167,6 +167,7 @@ int main(){
     BN_free(open_result);
     BN_CTX_free(ctx);
 
+    return 0;
 }
 
 #endif

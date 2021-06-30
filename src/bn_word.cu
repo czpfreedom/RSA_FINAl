@@ -400,10 +400,10 @@ __host__ int BN_WORD_add_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *
     a_temp=BN_WORD_new(dmax);
     b_temp=BN_WORD_new(dmax);
     temp_result=BN_WORD_new(dmax);
-    BN_WORD_div(a,n,q,a_temp);
-    BN_WORD_div(b,n,q,b_temp);
+    BN_WORD_mod(a,n,a_temp);
+    BN_WORD_mod(b,n,b_temp);
     BN_WORD_add(a_temp,b_temp,temp_result);
-    if(BN_WORD_cmp(a_temp,temp_result)==1){
+    if((BN_WORD_cmp(a_temp,temp_result)==1)||(BN_WORD_cmp(temp_result,n)==1)){
         BN_WORD_sub(temp_result,n,temp_result);
     }
     BN_WORD_copy(temp_result,result);
