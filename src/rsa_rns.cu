@@ -177,16 +177,14 @@ __host__ RNS_N:: RNS_N(RSA_N *rsa_n){
     BN_WORD_setone(m_M2);
     for(int i=0;i<m_base_num;i++){
         BN_PART_BN_WORD_transform(m_m1[i],bn_m);
-        BN_WORD_mul(bn_m,m_M1,temp_result);
-        BN_WORD_copy(temp_result,m_M1);
+        BN_WORD_mul(bn_m,m_M1,m_M1);
     }
     for(int i=0;i<m_base_num;i++){
         BN_PART_BN_WORD_transform(m_m2[i],bn_m);
-        BN_WORD_mul(bn_m,m_M2,temp_result);
-        BN_WORD_copy(temp_result,m_M2);
+        BN_WORD_mul(bn_m,m_M2,m_M2);
     }
-    BN_WORD_div(m_M1,m_rsa_n->n,q,m_M1_n);
-    BN_WORD_div(m_M2,m_rsa_n->n,q,m_M2_n);
+    BN_WORD_mod(m_M1,m_rsa_n->n,m_M1_n);
+    BN_WORD_mod(m_M2,m_rsa_n->n,m_M2_n);
     for(int i=0;i<m_base_num;i++){
         BN_PART_BN_WORD_transform(m_m1[i], bn_m);
         BN_WORD_div(m_M1,bn_m,m_M1_i[i],r);
