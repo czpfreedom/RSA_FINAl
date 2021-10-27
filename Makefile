@@ -11,9 +11,10 @@ RSA_LIB = $(DIR_LIB)/rsa_final.a
 
 OPENSSL_DIR=/home/nx2/openssl-1.1.1c
 OPENSSL_INC=-I/usr/local/include/ -I$(OPENSSL_DIR)/crypto -I$(OPENSSL_DIR)/crypto/include
+CUDA_INC = -I/usr/local/cuda-10.2/targets/aarch64-linux/include/
 OPENSSL_LIB=/usr/local/lib/
 
-INC=-I$(DIR_INC) $(OPENSSL_INC) 
+INC=-I$(DIR_INC) $(OPENSSL_INC) $(CUDA_INC)
 LIB=-L$(OPENSSL_LIB) -lssl -lcrypto -L /usr/local/cuda-10.2/targets/aarch64-linux/lib/ -lcudadevrt -lcudart -lstdc++
 
 NVCC=nvcc -arch=sm_60 

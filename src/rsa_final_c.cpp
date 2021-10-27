@@ -1,5 +1,8 @@
 #include "rsa_final.h"
 #include <stdio.h>
+
+namespace namespace_rsa_final{
+
 int BN_mod_exp_cpp(BN_WORD *rr,  BN_WORD *a,  BN_WORD *p,  BN_WORD *m){
     RSA_N *rsa_n;
     rsa_n = RSA_N_new(a->dmax);
@@ -27,4 +30,6 @@ int BN_mod_exp_cuda(BN_WORD *rr,  BN_WORD *a, BN_WORD *p, BN_WORD *m){
     print_log_BN1(p);
     BN_mod_exp_cpp(rr, a, p, m);
     return 1;
+}
+
 }

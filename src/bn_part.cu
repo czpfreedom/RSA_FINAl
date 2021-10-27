@@ -16,6 +16,8 @@
 #define LONG_MASK2l (0xffffffffL)        // unsigned long also  but with 32 zeros at the top
 #endif
 
+namespace namespace_rsa_final{
+
 __host__ __device__ int int_mod(const int a,const int b){
     int c=a%b;
     while(c<0){
@@ -196,4 +198,4 @@ __host__ __device__ int BN_PART_mul_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART
 #endif
 
 
-
+}

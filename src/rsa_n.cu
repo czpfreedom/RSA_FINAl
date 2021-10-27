@@ -1,7 +1,7 @@
-#ifndef RSA_N_H
-#define RSA_N_H
-
 #include "bn_word.h"
+
+namespace namespace_rsa_final{
+
 __host__ RSA_N *RSA_N_new(int dmax){
     RSA_N *rsa_n;
     rsa_n=(RSA_N*)malloc(sizeof(RSA_N));
@@ -19,5 +19,4 @@ __host__ int RSA_N_free(RSA_N *rsa_n){
     return 0;
 }
 
-
-#endif
+}

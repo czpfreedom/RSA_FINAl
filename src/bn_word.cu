@@ -1,6 +1,11 @@
 #include "bn_word.h"
 #include "stdlib.h"
 #include <stdio.h>
+#include "sstream"
+#include "iostream"
+#include "string"
+
+namespace namespace_rsa_final{
 
 __host__ BN_WORD *BN_WORD_new(int dmax){
     BN_WORD *a;
@@ -500,4 +505,42 @@ __device__ int BN_WORD_BN_PART_mod_device (BN_WORD *a, BN_PART n, BN_PART &resul
     return 0;
 }
 
+// need consider some length
+
+__host__ int BN_WORD_2_Str(BN_WORD *a, std::string str){
+    std:: ostringstream ostr1;
+    for(int i=a->dmax-1;i>=0;i--){
+        ostr1<<std::hex<<a->d[i]<<",";
+    }
+    str=ostr1.str();
+    return 0;
+}
+
+__host__ int Str_2_BN_WORD(BN_WORD *a, std::string str){
+    int str_num;
+    for(int i=0;i<a->dmax;i++){
+        a->d[i]=0;
+    }
+    for(int i=0;i<a->dmax;i++){
+        for(int j=0;j<sizeof(BN_PART)*8;j++){
+	    str_num=i*sizeof(BN_PART)*8+j;
+	    if((str[str_num]>='0')&&(str[str_num]<='9')){
+	        a->d[i]=a->d[i]*16+str[str_num]-'0';
+	    }
+	    if((str[str_num]>='A')&&(str[str_num]<='F')){
+	        a->d[i]=a->d[i]*16+str[str_num]-'A'+10;
+	    }
+	    if((str[str_num]>='a')&&(str[str_num]<='f')){
+		a->d[i]=a->d[i]*16+str[str_num]-'a'+10;
+	    }
+            if(str_num==str.length()-1){
+	        return 0;
+	    }	    
+	}
+    }
+    return 0;
+}
+
 #endif
+
+}

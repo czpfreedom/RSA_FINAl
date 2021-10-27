@@ -1,7 +1,6 @@
-#ifndef BN_WORD_ARRAY_H
-#define BN_WORD_ARRAY_H
-
 #include "rsa_final.h"
+
+namespace namespace_rsa_final{
 
 __host__ BN_WORD_ARRAY *BN_WORD_ARRAY_new(int word_num, int dmax){
     BN_WORD_ARRAY *a;
@@ -23,4 +22,4 @@ __host__ void BN_WORD_ARRAY_free(BN_WORD_ARRAY *a){
 
 }
 
-#endif
+}

@@ -3,6 +3,8 @@
 
 #include "config.h"
 
+namespace namespace_rsa_final {
+
 #ifdef __cplusplus
 extern "C" { 
 #endif
@@ -34,6 +36,8 @@ int BN_mod_exp_cuda(BN_WORD *rr, BN_WORD *a, BN_WORD *p,BN_WORD *m);
 // rr=a^p mod m   
 // return 1 right
 // return 0 error  
+
+}
 
 #ifdef __cplusplus
 }

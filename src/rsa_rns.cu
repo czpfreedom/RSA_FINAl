@@ -1,5 +1,7 @@
 #include "rsa_rns.h"
 
+namespace namespace_rsa_final{
+
 __global__ void RNS_mul_mod_kernel(BN_WORD *bn_a,BN_WORD *bn_b,int base_num,BN_PART *m1, BN_PART *m2,BN_PART *d,BN_PART *e,BN_PART *a, BN_PART *a_2,BN_PART *b,BN_PART*b_2,BN_PART *c,BN_PART *x_result){
     int thread_id=threadIdx.x+blockIdx.x*blockDim.x;
     unsigned int mask=0xffffffff;
@@ -307,4 +309,6 @@ int RNS_N:: RSA_RNS_reduction1(BN_PART *x_result, BN_WORD *result){
         BN_WORD_add_mod(result,result_add,m_M1,result);
     }
     return 0;
+}
+
 }

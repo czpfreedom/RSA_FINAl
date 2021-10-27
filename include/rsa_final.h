@@ -2,6 +2,9 @@
 #define RSA_H
 
 #include "rsa_final_c.h"
+#include "rsa_final_log.h"
+
+namespace namespace_rsa_final{
 
 /***** BIGNUM ARRAY *****************************/
 
@@ -51,6 +54,12 @@ public:
     int CRT_EXP_MOD(BN_WORD *a, BN_WORD *e, BN_WORD *result);
     int CRT_EXP_MOD_PARALL(BN_WORD *a, BN_WORD *e, BN_WORD *result);
     int CRT_EXP_MOD_ARRAY(BN_WORD_ARRAY *a, BN_WORD_ARRAY *b, BN_WORD_ARRAY *result);
+
+    int log_create();
+    int log_info(LOG_TYPE log_type);
+    int log_quit();
+
+
 };
 /************************************************/
 
@@ -96,5 +105,7 @@ public:
 };
 
 /************************************************/
+
+}
 
 #endif

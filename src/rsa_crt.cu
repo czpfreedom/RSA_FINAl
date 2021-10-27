@@ -6,12 +6,7 @@
 
 using namespace std;
 
-double cpuSecond() {
-    struct timeval tp;
-    gettimeofday(&tp,NULL);
-    return ((double)tp.tv_sec + (double)tp.tv_usec*1.e-6);
-}
-
+namespace namespace_rsa_final{
 
 __global__ void BN_WORD_parallel_Mon(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, const BN_PART n0_inverse, BN_WORD *result){
     
@@ -669,8 +664,7 @@ int CRT_N :: CRT_MUL_MOD(BN_WORD *a, BN_WORD *b, BN_WORD *result){
     b_pro=BN_WORD_new(dmax);
     temp_result=BN_WORD_new(dmax);
     BN_WORD_mod(a,m_rsa_n->n,a_pro);
-    BN_WORD_mod(b,m_rsa_n->n,b_pro);
-    
+    BN_WORD_mod(b,m_rsa_n->n,b_pro);    
     
     BN_WORD_mul_mod(a_pro,m_R,m_rsa_n->n,temp_result);
     BN_WORD_copy(temp_result,a_pro);
@@ -806,3 +800,7 @@ int CRT_N :: CRT_EXP_MOD_ARRAY(BN_WORD_ARRAY *a, BN_WORD_ARRAY *e, BN_WORD_ARRAY
     cout<<"free time use:"<<1000*(time_end-time_start)/(double)CLOCKS_PER_SEC<<"ms"<<endl;
     return 0;
 }
+
+}
+
+

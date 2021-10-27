@@ -3,6 +3,10 @@
 
 #include "bn_part.h"
 #include "stdio.h"
+#include "string.h"
+#include "iostream"
+
+namespace namespace_rsa_final{
 
 __device__ BN_WORD *BN_WORD_new_device(int dmax);
 
@@ -74,5 +78,11 @@ __host__ int BN_WORD_BN_PART_mod (BN_WORD *a, BN_PART n, BN_PART &result);
 
 __device__ int BN_WORD_BN_PART_mod_device (BN_WORD *a, BN_PART n, BN_PART &result);
 
+__host__ int BN_WORD_2_Str(BN_WORD *a, std::string str);
+
+__host__ int Str_2_BN_WORD(BN_WORD *a, std::string str);
+
+}
 
 #endif
+
