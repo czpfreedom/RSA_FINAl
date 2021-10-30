@@ -1,546 +1,696 @@
 #include "bn_word.h"
-#include "stdlib.h"
-#include <stdio.h>
-#include "sstream"
-#include "iostream"
-#include "string"
+#include "stdio.h"
 
 namespace namespace_rsa_final{
 
-__host__ BN_WORD *BN_WORD_new(int dmax){
-    BN_WORD *a;
-    cudaMallocManaged((void**)&(a),sizeof(BN_WORD));
-    a->dmax=dmax;
-    cudaMallocManaged((void**)&(a->d),dmax*sizeof(BN_PART));
-    return a;
+GPU_WORD :: GPU_WORD(){
+    memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
+    m_neg=0;
+    m_top=1; 
 }
 
-__host__ void BN_WORD_free(BN_WORD *a){
-    cudaFree(a->d);
-    cudaFree(a);
+GPU_WORD :: GPU_WORD(GPU_WORD &gw){
+    memcpy(m_data,gw.m_data,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
+    m_neg=gw.m_neg;
+    m_top=gw.m_top;
 }
 
-__device__ BN_WORD *BN_WORD_new_device(int dmax){
-    BN_WORD *a;
-    a=(BN_WORD*)malloc(sizeof(BN_WORD));
-    a->dmax=dmax;
-    a->d=(BN_PART*)malloc(dmax*sizeof(BN_PART));
-    return a;
+GPU_WORD& GPU_WORD ::operator=(GPU_WORD &gw){
+    memcpy(m_data,gw.m_data,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
+    m_neg=gw.m_neg;
+    m_top=gw.m_top;
+    return *this;
 }
 
-__device__ void BN_WORD_free_device(BN_WORD *a){
-    free(a->d);
-    free(a);
+GPU_WORD :: ~GPU_WORD(){
+
 }
 
-__host__ __device__ void BN_WORD_setzero(BN_WORD *a){
-    for(int i=0;i<a->dmax;i++){
-        a->d[i]=0;
-    }
-}
-
-__host__ __device__ void BN_WORD_setone(BN_WORD *a){
-    a->d[0]=1;
-    for(int i=1;i<a->dmax;i++){
-        a->d[i]=0;
-    }
-}
-
-__host__ int BN_WORD_copy_host(const BN_WORD *a,BN_WORD *b){
-    return BN_WORD_copy(a,b);
-}
-
-
-__host__ __device__ int BN_WORD_copy(const BN_WORD *a,BN_WORD *b){
-    if(a->dmax!=b->dmax){
-        return -1;
-    }
-    for(int i=0;i<a->dmax;i++){
-        b->d[i]=a->d[i];
-    }
-    return 0;
-}
-
-__host__ int BN_WORD_print(const BN_WORD *a){
-    printf("dmax:%d\n",a->dmax);
-    for(int i=(a->dmax)-1;i>=0;i--){
-#ifdef BN_PART_32
-	printf("%x,",a->d[i]);
-#endif
-#ifdef BN_PART_64
-        printf("%lx,",a->d[i]);
-#endif
-    }
-    printf("\n");
-    return 0;
-}
-
-__device__ int BN_WORD_print_device(const BN_WORD *a){
-    printf("dmax:%d\n",a->dmax);
-    for(int i=(a->dmax)-1;i>=0;i--){
-#ifdef BN_PART_32
-	printf("%x,",a->d[i]);
-#endif
-#ifdef BN_PART_64
-        printf("%lx,",a->d[i]);
-#endif
-    }
-    printf("\n");
-    return 0;
-}
-
-__host__ int BN_WORD_print_log(FILE *out, BN_WORD *a){
-    fprintf(out,"dmax:%x\n", a->dmax);	
-    for(int i=(a->dmax)-1;i>=0;i--){
-#ifdef BN_PART_32
-        fprintf(out,"%x,", a->d[i]);	
-#endif
-#ifdef BN_PART_64
-        fprintf(out,"%lx,", a->d[i]);	
-#endif
-    }
-    fprintf(out,"\n");	
-    return 0;
-}
-
-__host__ __device__ int BN_WORD_cmp(const BN_WORD *a,const BN_WORD *b){
-    if((a->dmax)!=(b->dmax)){
-        return -1;
-    }
-    for(int i=(a->dmax)-1;i>=0;i--){
-        if(a->d[i]>b->d[i]){
-            return 1;
-        }
-        if(a->d[i]<b->d[i]){
-            return 2;
-        }
-    }
-    return 0;
-}
-
-__host__ __device__ BN_PART bn_word_get_bit(const BN_WORD *a, int i){
-    return BN_PART_get_bit(a->d[i/(sizeof(BN_PART)*8)],i%(sizeof(BN_PART)*8));
-}
-
-__host__ __device__ int BN_WORD_left_shift(const BN_WORD *a,BN_WORD *b,int words){
-    if((a->dmax)!=(b->dmax)){
-        return -1;
-    }
-    if((a->dmax)<words){
-        return -2;
-    }
-    for(int i=(a->dmax)-1;i>=words;i--){
-        b->d[i]=a->d[i-words];
-    }
-    for(int i=words-1;i>=0;i--){
-        b->d[i]=0;
-    }
-    return 0;
-}
-
-
-__host__ __device__ int BN_WORD_left_shift_bits(const BN_WORD *a,BN_WORD *b,int bits){
-    int num_bits=bits%(sizeof(BN_PART)*8);
-    int num_bnpart=bits/(sizeof(BN_PART)*8);
-    if((a->dmax)!=(b->dmax)){
-        return -1;
-    }
-    b->d[num_bnpart]=a->d[0]<<num_bits;
-    for (int i=1+num_bnpart;i<a->dmax;i++){
-	if(num_bits==0){
-	    b->d[i]=((a->d[i-num_bnpart])<<num_bits);
-	}
-	else{
-	    b->d[i]=((a->d[i-num_bnpart])<<num_bits)+((a->d[i-1-num_bnpart])>>(sizeof(BN_PART)*8-num_bits));
-	}
-    }
-    for (int i=0;i<num_bnpart;i++){
-        b->d[i]=0;
-    }
-    return 0;
-}
-
-__host__ __device__ int BN_WORD_right_shift(const BN_WORD *a,BN_WORD *b,int words){
-    if((a->dmax)!=(b->dmax)){
-        return -1;
-    }
-    if((a->dmax)<words){
-        return -3;
-    }
-    for(int i=0;i<a->dmax-words;i++){
-        b->d[i]=a->d[i+words];
-    }
-    for(int i=a->dmax-words;i<a->dmax;i++){
-        b->d[i]=0;
-    }
-    return 0;
-}
-
-__host__ __device__ int BN_WORD_right_shift_bits(const BN_WORD *a,BN_WORD *b,int bits){
-    int num_bits=bits%(sizeof(BN_PART)*8);
-    int num_bnpart=bits/(sizeof(BN_PART)*8);
-    if((a->dmax)!=(b->dmax)){
-        return -1;
-    }
-    for (int i=0;i<a->dmax-1-num_bnpart;i++){
-	if(num_bits==0){
-	    b->d[i]=(a->d[i+num_bnpart])>>num_bits;
-	}
-	else{
-	    b->d[i]=((a->d[i+num_bnpart])>>num_bits)+((a->d[i+num_bnpart+1])<<(sizeof(BN_PART)*8-num_bits));
-	}
-    }
-    b->d[a->dmax-1-num_bnpart]=(a->d[a->dmax-1])>>num_bits;
-    for(int i=a->dmax-num_bnpart;i<a->dmax;i++){
-        b->d[i]=0;
-    }
-    return 0;
-}
-
-__host__ __device__ int BN_WORD_add(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
-    BN_PART mid_value;
-    BN_PART carry1=0;
-    BN_PART carry2=0;
-    for (int i=0;i<a->dmax;i++){
-        carry2=carry1;
-        carry1=0;
-        mid_value=a->d[i]+carry2;
-        if(mid_value<a->d[i]){
-            carry1=1;
-        }
-        mid_value=mid_value+b->d[i];
-        if(mid_value<b->d[i]){
-            carry1=1;
-        }
-        result->d[i]=mid_value;
-    }
-    return 0;
-}
-
-__host__ __device__ int BN_WORD_sub(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
-    BN_PART mid_value1, mid_value;
-    BN_PART carry1,carry2;
-    int cmp=BN_WORD_cmp(a,b);
-    if(cmp==0){
-        BN_WORD_setzero(result);
-	return 0;
-    }
-    result->dmax=a->dmax;
-    carry2=0;
-    carry1=0;
-    for(int i=0;i<a->dmax;i++){
-        carry2=carry1;
+GPU_WORD& GPU_WORD :: operator+(GPU_WORD &gw_2){
+    BN_PART carry1, carry2;
+    GPU_WORD add_result;
+    GPU_WORD gw_1_neg, gw_2_neg;
+    GPU_WORD gw_1;
+    gw_1=*this;
+    int top;
+    if(gw_1.m_neg==gw_2.m_neg){
+        add_result.m_neg=gw_1.m_neg;
 	carry1=0;
-	mid_value1=a->d[i]-carry2;
-	if(mid_value1>a->d[i]){
-	    carry1=1;
+	carry2=0;
+	top=(gw_1.m_top>=gw_2.m_top)?gw_1.m_top:gw_2.m_top;
+	for(int i=0;i<top;i++){
+	    carry2=carry1;
+	    carry1=0; 
+	    add_result.m_data[i]=carry2+gw_1.m_data[i];
+	    if(add_result.m_data[i]<gw_1.m_data[i]){
+	        carry1=1;
+	    }
+	    add_result.m_data[i]=add_result.m_data[i]+gw_2.m_data[i];
+	    if(add_result.m_data[i]<gw_2.m_data[i]){
+		carry1=1;
+	    }	    	    
 	}
-	mid_value=mid_value1-b->d[i];
-	if(mid_value>mid_value1){
-	    carry1=1;
+	add_result.m_data[top]=carry1;
+	add_result.check_top();
+    }
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==1)){
+        gw_2_neg=gw_2;
+	gw_2_neg.change_neg();
+	if(gw_1==gw_2_neg){
+	    add_result.setzero();
+	    *this=add_result;
+	    return *this;
 	}
-	result->d[i]=mid_value;
-    }
-    return 0;
-}
-
-__host__ int BN_WORD_mul(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
-    int dmax=a->dmax;
-    BN_WORD *result_temp;
-    BN_WORD *a_temp;
-    result_temp=BN_WORD_new(dmax);
-    a_temp=BN_WORD_new(dmax);
-    BN_WORD_setzero(result_temp);
-    BN_WORD_copy(a,a_temp);
-    for (int i=0;i<dmax;i++){
-        for(int j=0;j<sizeof(BN_PART)*8;j++){
-	    if(BN_PART_get_bit(b->d[i],j)==1){
-	        BN_WORD_add(result_temp,a_temp,result_temp);
+	if(gw_1>gw_2_neg){
+	    top=gw_1.m_top;
+	    carry2=0;
+	    carry1=0;
+	    for(int i=0;i<top;i++){
+	        carry2=carry1;
+		carry1=0;
+		add_result.m_data[i]=gw_1.m_data[i]-carry2;
+		if(add_result.m_data[i]>gw_1.m_data[i]){
+		    carry1=1;
+		}
+		add_result.m_data[i]=add_result.m_data[i]-gw_2.m_data[i];
+		if(add_result.m_data[i]>gw_2.m_data[i]){
+		    carry1=1;
+		}
 	    }
-	    BN_WORD_left_shift_bits(a,a_temp,i*sizeof(BN_PART)*8+j+1);
+	    add_result.m_neg=0;
+	    add_result.check_top();
 	}
-    }
-    BN_WORD_copy(result_temp,result);
-    BN_WORD_free(result_temp);
-    BN_WORD_free(a_temp);
-    return 0;
-}
-
-__device__ int BN_WORD_mul_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *result){
-    int dmax=a->dmax;
-    BN_WORD *result_temp;
-    BN_WORD *a_temp;
-    result_temp=BN_WORD_new_device(dmax);
-    a_temp=BN_WORD_new_device(dmax);
-    BN_WORD_setzero(result_temp);
-    BN_WORD_copy(a,a_temp);
-    for (int i=0;i<dmax;i++){
-        for(int j=0;j<sizeof(BN_PART)*8;j++){
-            if(BN_PART_get_bit(b->d[i],j)==1){
-                BN_WORD_add(result_temp,a_temp,result_temp);
-            }
-            BN_WORD_left_shift_bits(a,a_temp,i*sizeof(BN_PART)*8+j);
-        }
-    }
-    BN_WORD_copy(result_temp,result);
-    BN_WORD_free_device(result_temp);
-    BN_WORD_free_device(a_temp);
-    return 0;
-}
-
-__host__ int BN_WORD_div(const BN_WORD *a, const BN_WORD *b, BN_WORD *q, BN_WORD *r){
-    int dmax=a->dmax;
-    BN_WORD_setzero(q);
-    BN_WORD *one,*a_temp,*b_temp,*temp_result,*div_temp;
-    one=BN_WORD_new(dmax);
-    a_temp=BN_WORD_new(dmax);
-    b_temp=BN_WORD_new(dmax);
-    temp_result=BN_WORD_new(dmax);
-    div_temp=BN_WORD_new(dmax);
-    BN_WORD_setone(one);
-    int shift_num=0;
-    if(BN_WORD_cmp(a,b)==0){
-        BN_WORD_setone(q);
-        BN_WORD_setzero(r);
-        return 0;
-    }
-    BN_WORD_copy(a,a_temp);
-    while((BN_WORD_cmp(a_temp,b)==1)||(BN_WORD_cmp(a_temp,b)==0)){
-        shift_num ++;
-        BN_WORD_right_shift_bits(a_temp,temp_result,1);
-        BN_WORD_copy(temp_result,a_temp);
-    }
-    shift_num --;
-    BN_WORD_copy(a,a_temp);
-    BN_WORD_left_shift_bits(b,b_temp,shift_num);
-    BN_WORD_setzero(q);
-    for(int i=shift_num;i>=0;i--){
-        if((BN_WORD_cmp(a_temp,b_temp)==1)||(BN_WORD_cmp(a_temp,b_temp)==0)){
-            BN_WORD_sub(a_temp,b_temp,temp_result);
-	    BN_WORD_copy(temp_result,a_temp);
-            BN_WORD_left_shift_bits(one,div_temp,i);
-            BN_WORD_add(q,div_temp,temp_result);
-	    BN_WORD_copy(temp_result,q);
-        }
-        BN_WORD_right_shift_bits(b_temp,temp_result,1);
-        BN_WORD_copy(temp_result,b_temp);
-    }
-    BN_WORD_copy(a_temp,r);
-    BN_WORD_free(one);
-    BN_WORD_free(a_temp);
-    BN_WORD_free(b_temp);
-    BN_WORD_free(temp_result);
-    BN_WORD_free(div_temp);
-    return 0;
-}
-
-__device__ int BN_WORD_div_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *q, BN_WORD *r){
-    int dmax=a->dmax;
-    BN_WORD_setzero(q);
-    BN_WORD *one,*a_temp,*b_temp,*temp_result,*div_temp;
-    one=BN_WORD_new_device(dmax);
-    a_temp=BN_WORD_new_device(dmax);
-    b_temp=BN_WORD_new_device(dmax);
-    temp_result=BN_WORD_new_device(dmax);
-    div_temp=BN_WORD_new_device(dmax);
-    BN_WORD_setone(one);
-    int shift_num=0;
-    if(BN_WORD_cmp(a,b)==0){
-        BN_WORD_setone(q);
-        BN_WORD_setzero(r);
-        return 0;
-    }
-    BN_WORD_copy(a,a_temp);
-    while((BN_WORD_cmp(a_temp,b)==1)||(BN_WORD_cmp(a_temp,b)==0)){
-        shift_num ++;
-        BN_WORD_right_shift_bits(a_temp,temp_result,1);
-        BN_WORD_copy(temp_result,a_temp);
-    }
-    shift_num --;
-    BN_WORD_copy(a,a_temp);
-    BN_WORD_left_shift_bits(b,b_temp,shift_num);
-    BN_WORD_setzero(q);
-    for(int i=shift_num;i>=0;i--){
-        if((BN_WORD_cmp(a_temp,b_temp)==1)||(BN_WORD_cmp(a_temp,b_temp)==0)){
-            BN_WORD_sub(a_temp,b_temp,temp_result);
-            BN_WORD_copy(temp_result,a_temp);
-            BN_WORD_left_shift_bits(one,div_temp,i);
-            BN_WORD_add(q,div_temp,temp_result);
-            BN_WORD_copy(temp_result,q);
-        }
-        BN_WORD_right_shift_bits(b_temp,temp_result,1);
-        BN_WORD_copy(temp_result,b_temp);
-    }
-    BN_WORD_copy(a_temp,r);
-    BN_WORD_free_device(one);
-    BN_WORD_free_device(a_temp);
-    BN_WORD_free_device(b_temp);
-    BN_WORD_free_device(temp_result);
-    BN_WORD_free_device(div_temp);
-    return 0;
-}
-
-__host__ int BN_WORD_mod (const BN_WORD *a, const BN_WORD *n, BN_WORD *result){
-    int dmax=a->dmax;
-    BN_WORD *q;
-    q =BN_WORD_new(dmax);
-    BN_WORD_div(a,n,q,result);
-    BN_WORD_free(q);
-    return 0;
-}
-
-__device__ int BN_WORD_mod_device (const BN_WORD *a, const BN_WORD *n, BN_WORD *result){
-    int dmax=a->dmax;
-    BN_WORD *q;
-    q =BN_WORD_new_device(dmax);
-    BN_WORD_div_device(a,n,q,result);
-    BN_WORD_free_device(q);
-    return 0;
-}
-
-__host__ int BN_WORD_add_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, BN_WORD *result){
-    int dmax=a->dmax;
-    BN_WORD *q, *a_temp, *b_temp, *temp_result;
-    q=BN_WORD_new(dmax);
-    a_temp=BN_WORD_new(dmax);
-    b_temp=BN_WORD_new(dmax);
-    temp_result=BN_WORD_new(dmax);
-    BN_WORD_mod(a,n,a_temp);
-    BN_WORD_mod(b,n,b_temp);
-    BN_WORD_add(a_temp,b_temp,temp_result);
-    if((BN_WORD_cmp(a_temp,temp_result)==1)||(BN_WORD_cmp(temp_result,n)==1)){
-        BN_WORD_sub(temp_result,n,temp_result);
-    }
-    BN_WORD_copy(temp_result,result);
-    BN_WORD_free(q);
-    BN_WORD_free(a_temp);
-    BN_WORD_free(b_temp);
-    BN_WORD_free(temp_result);
-    return 0;
-}
-
-__host__ int BN_WORD_mul_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, BN_WORD *result){
-    int dmax=a->dmax;
-    int bit;
-    BN_WORD *a_sub, *b_sub, *temp_result1, *temp_result2;
-    a_sub=BN_WORD_new(dmax);
-    b_sub=BN_WORD_new(dmax);
-    temp_result1=BN_WORD_new(dmax);
-    temp_result2=BN_WORD_new(dmax);
-    BN_WORD_copy(a,a_sub);
-    BN_WORD_copy(b,b_sub);
-    BN_WORD_mod(a_sub,n,a_sub);
-    if(BN_WORD_cmp(a_sub,n)==0){
-        BN_WORD_setzero(result);
-        return 0;
-    }
-    BN_WORD_mod(b_sub,n,b_sub);
-    if(BN_WORD_cmp(b_sub,n)==0){
-        BN_WORD_setzero(result);
-        return 0;
-    }
-    BN_WORD_setzero(temp_result1);
-    BN_WORD_setzero(temp_result2);
-    for(int i=dmax-1;i>=0;i--){
-        for(int j=sizeof(BN_PART)*8-1;j>=0;j--){
-                bit=BN_PART_get_bit(b_sub->d[i],j);
-                BN_WORD_add(temp_result1,temp_result1,temp_result2);
-                if((BN_WORD_cmp(temp_result1, temp_result2)==1)||(BN_WORD_cmp(temp_result2,n)==1)||(BN_WORD_cmp(temp_result2,n)==0)){
-                    BN_WORD_sub(temp_result2,n,temp_result1);
-                }
-                else {
-                    BN_WORD_copy(temp_result2,temp_result1);
-                }
-                if(bit==1){
-                    BN_WORD_add(temp_result1,a_sub,temp_result2);
-                    if((BN_WORD_cmp(temp_result1, temp_result2)==1)||(BN_WORD_cmp(temp_result2,n)==1)||(BN_WORD_cmp(temp_result2,n)==0)){
-                            BN_WORD_sub(temp_result2,n,temp_result1);
-                    }
-                    else {
-                            BN_WORD_copy(temp_result2,temp_result1);
-                    }
-                }
-        }
-    }
-    BN_WORD_copy(temp_result1,result);
-    BN_WORD_free(a_sub);
-    BN_WORD_free(b_sub);
-    BN_WORD_free(temp_result1);
-    BN_WORD_free(temp_result2);
-    return 0;
-}
-
-
-#ifdef BN_PART_64
-__host__ __device__ int BN_PART_BN_WORD_transform(BN_PART a, BN_WORD *result){
-    BN_WORD_setzero(result);
-    result->d[0]=a;
-    return 0;
-}
-
-__host__ int BN_WORD_BN_PART_mod (BN_WORD *a, BN_PART n, BN_PART &result){
-    int dmax=a->dmax;
-    BN_WORD *word_n;
-    BN_WORD *word_result;
-    word_n=BN_WORD_new(dmax);
-    word_result=BN_WORD_new(dmax);
-    BN_PART_BN_WORD_transform(n,word_n);
-    BN_WORD_mod(a,word_n,word_result);
-    result=word_result->d[0];
-    BN_WORD_free(word_n);
-    BN_WORD_free(word_result);
-    return 0;
-}
-
-__device__ int BN_WORD_BN_PART_mod_device (BN_WORD *a, BN_PART n, BN_PART &result){
-    int dmax=a->dmax;
-    BN_WORD *word_n,*word_result;
-    word_n=BN_WORD_new_device(dmax);
-    word_result=BN_WORD_new_device(dmax);
-    BN_PART_BN_WORD_transform(n,word_n);
-    BN_WORD_mod_device(a,word_n,word_result);
-    result=word_result->d[0];
-    BN_WORD_free_device(word_n);
-    BN_WORD_free_device(word_result);
-    return 0;
-}
-
-// need consider some length
-
-__host__ int BN_WORD_2_Str(BN_WORD *a, std::string str){
-    std:: ostringstream ostr1;
-    for(int i=a->dmax-1;i>=0;i--){
-        ostr1<<std::hex<<a->d[i]<<",";
-    }
-    str=ostr1.str();
-    return 0;
-}
-
-__host__ int Str_2_BN_WORD(BN_WORD *a, std::string str){
-    int str_num;
-    for(int i=0;i<a->dmax;i++){
-        a->d[i]=0;
-    }
-    for(int i=0;i<a->dmax;i++){
-        for(int j=0;j<sizeof(BN_PART)*8;j++){
-	    str_num=i*sizeof(BN_PART)*8+j;
-	    if((str[str_num]>='0')&&(str[str_num]<='9')){
-	        a->d[i]=a->d[i]*16+str[str_num]-'0';
+	if(gw_1<gw_2_neg){
+	    top=gw_2_neg.m_top;
+	    carry2=0;
+	    carry1=0;
+	    for(int i=0;i<top;i++){
+	        carry2=carry1;
+		carry1=0;
+		add_result.m_data[i]=gw_2.m_data[i]-carry2;
+		if(add_result.m_data[i]>gw_2.m_data[i]){
+		    carry1=1;
+		}
+		add_result.m_data[i]=add_result.m_data[i]-gw_1.m_data[i];
+		if(add_result.m_data[i]>gw_1.m_data[i]){
+		    carry1=1;
+		}
 	    }
-	    if((str[str_num]>='A')&&(str[str_num]<='F')){
-	        a->d[i]=a->d[i]*16+str[str_num]-'A'+10;
+	    add_result.m_neg=1;
+	    add_result.check_top();
+	}
+    }    
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==0)){
+        gw_1_neg=gw_1;
+	gw_1_neg.change_neg();
+	if(gw_1_neg==gw_2){
+	    add_result.setzero();
+	    *this=add_result;
+	    return *this;
+	}
+	if(gw_1_neg>gw_2){
+	    top=gw_1.m_top;
+	    carry2=0;
+	    carry1=0;
+	    for(int i=0;i<top;i++){
+	        carry2=carry1;
+		carry1=0;
+		add_result.m_data[i]=gw_1.m_data[i]-carry2;
+		if(add_result.m_data[i]>gw_1.m_data[i]){
+		    carry1=1;
+		}
+		add_result.m_data[i]=add_result.m_data[i]-gw_2.m_data[i];
+		if(add_result.m_data[i]>gw_2.m_data[i]){
+		    carry1=1;
+		}
 	    }
-	    if((str[str_num]>='a')&&(str[str_num]<='f')){
-		a->d[i]=a->d[i]*16+str[str_num]-'a'+10;
+	    add_result.m_neg=1;
+	    add_result.check_top();
+	}
+	if(gw_1_neg<gw_2){
+	    top=gw_2_neg.m_top;
+	    carry2=0;
+	    carry1=0;
+	    for(int i=0;i<top;i++){
+	        carry2=carry1;
+		carry1=0;
+		add_result.m_data[i]=gw_2.m_data[i]-carry2;
+		if(add_result.m_data[i]>gw_2.m_data[i]){
+		    carry1=1;
+		}
+		add_result.m_data[i]=add_result.m_data[i]-gw_1.m_data[i];
+		if(add_result.m_data[i]>gw_1.m_data[i]){
+		    carry1=1;
+		}
 	    }
-            if(str_num==str.length()-1){
-	        return 0;
-	    }	    
+	    add_result.m_neg=1;
+	    add_result.check_top();
+	}
+    }    
+    *this= add_result;
+    return *this;	    	
+}
+
+GPU_WORD& GPU_WORD :: operator-(GPU_WORD &gw_2){
+    GPU_WORD gw_2_neg;
+    GPU_WORD sub_result;
+    GPU_WORD gw_1;
+    gw_1=*this;
+    gw_2_neg = gw_2;
+    gw_2_neg.change_neg();
+    sub_result=gw_1+gw_2_neg;
+    *this = sub_result;
+    return * this;
+}
+
+GPU_WORD& GPU_WORD :: operator*(GPU_WORD &gw_2){
+    GPU_WORD mul_result;
+    GPU_WORD gw_1_mul;
+    GPU_WORD gw_1;
+    gw_1=*this;
+    mul_result.setzero();
+    gw_1_mul=gw_1;
+    for(int i=0;i<sizeof(BN_PART)*8*gw_2.m_top;i++){
+	gw_1_mul.left_shift(1);
+        if(gw_2.get_bit(i)==1){
+	    mul_result=mul_result+gw_1_mul;
 	}
     }
-    return 0;
+    if(gw_1.m_neg==gw_2.m_neg){
+        mul_result.m_neg=0;
+    }
+    if(gw_1.m_neg!=gw_2.m_neg){
+        mul_result.m_neg=1;
+    }
+    mul_result.check_top();
+    *this=mul_result;
+    return *this;
 }
 
-#endif
+GPU_WORD& GPU_WORD :: operator/(GPU_WORD &gw_2){
+    GPU_WORD div_result;
+    GPU_WORD gw_1_neg, gw_2_neg;
+    GPU_WORD zero, one;
+    GPU_WORD gw_1;
+    gw_1=*this;
+    int shift_num;
+    gw_1_neg=gw_1;
+    gw_2_neg=gw_2;
+    zero.setzero();
+    one.setone();
+    if(gw_1.m_neg==1){
+        gw_1_neg.change_neg();
+    }
+    if(gw_2.m_neg==1){
+        gw_2_neg.change_neg();
+    }
+    
+    if(gw_1_neg<gw_2_neg){
+        div_result.setzero();
+	*this=div_result;
+	return *this;
+    }
+    
+    shift_num=0;
+    while(gw_1_neg>=gw_2_neg){
+        shift_num++;
+	gw_2_neg.left_shift(1);
+    }
+    gw_2_neg.right_shift(1);
+    shift_num--;
+    one.left_shift(shift_num);
+    for(int i=0;i<shift_num;i++){
+        if(gw_1_neg>=gw_2_neg){
+	    gw_1_neg=gw_1_neg-gw_2_neg;
+	    div_result=div_result+one;
+	}
+	gw_2_neg.right_shift(1);
+	one.right_shift(1);
+    }
+    if(gw_1.m_neg==gw_2.m_neg){
+        div_result.m_neg=0;
+    }
+    if(gw_1.m_neg!=gw_2.m_neg){
+        div_result.m_neg=1;
+    }
+    div_result.check_top();
+    *this = div_result;
+    return *this;
+    
+}
+
+GPU_WORD& GPU_WORD :: operator%(GPU_WORD &gw_2){
+    GPU_WORD rem_result;
+    GPU_WORD gw_1_neg, gw_2_neg;
+    GPU_WORD zero, one;
+    GPU_WORD gw_1;
+    gw_1=*this;
+    int shift_num;
+    gw_1_neg=gw_1;
+    gw_2_neg=gw_2;
+    zero.setzero();
+    one.setone();
+    if(gw_1.m_neg==1){
+        gw_1_neg.change_neg();
+    }
+    if(gw_2.m_neg==1){
+        gw_2_neg.change_neg();
+    }
+    
+    if(gw_1_neg<gw_2_neg){
+	rem_result=gw_1;
+	*this=rem_result;
+	return *this;
+    }
+    
+    shift_num=0;
+    while(gw_1_neg>=gw_2_neg){
+        shift_num++;
+	gw_2_neg.left_shift(1);
+    }
+    gw_2_neg.right_shift(1);
+    shift_num--;
+    one.left_shift(shift_num);
+    for(int i=0;i<shift_num;i++){
+        if(gw_1_neg>=gw_2_neg){
+	    gw_1_neg=gw_1_neg-gw_2_neg;
+	}
+	gw_2_neg.right_shift(1);
+	one.right_shift(1);
+    }
+    rem_result=gw_1_neg;
+    rem_result.check_top();
+    *this = rem_result;
+    return *this;
+}
+
+int  GPU_WORD :: left_shift (int bits){
+    int num_bits=bits%(sizeof(BN_PART)*8);
+    int num_bnpart=bits/(sizeof(BN_PART)*8);
+    GPU_WORD shift_result;
+    GPU_WORD gw;
+    gw=*this;
+    shift_result.m_neg=gw.m_neg;
+    shift_result.m_top=gw.m_top;
+    for (int i=0;i<num_bnpart;i++){
+        shift_result.m_data[i]=0;
+    }
+    shift_result.m_data[num_bnpart]=gw.m_data[0]<<num_bits;
+    for (int i=num_bnpart+1;i<=num_bnpart+gw.m_top;i++){
+        if(num_bits==0){
+            shift_result.m_data[i]=gw.m_data[i-num_bnpart];
+        }
+        else{
+	    shift_result.m_data[i]=gw.m_data[i-num_bnpart]<<num_bits+gw.m_data[i-num_bnpart-1]>>(sizeof(BN_PART)*8-num_bits);
+        }
+    }
+    shift_result.check_top();
+    *this=shift_result;
+    return 1;
+}
+
+int GPU_WORD :: right_shift(int bits){
+    int num_bits=bits%(sizeof(BN_PART)*8);
+    int num_bnpart=bits/(sizeof(BN_PART)*8);	
+    GPU_WORD shift_result;
+    GPU_WORD gw;
+    gw=*this;
+    shift_result.m_neg=gw.m_neg;
+    shift_result.m_top=gw.m_top;
+    for (int i=0;i<gw.m_top-num_bnpart;i++){
+	if(num_bits==0){	    
+	    shift_result.m_data[i]=gw.m_data[i+num_bnpart];
+	}
+	else{
+	    shift_result.m_data[i]=gw.m_data[i+num_bnpart]>>num_bits+gw.m_data[i+num_bnpart+1]<<(sizeof(BN_PART)*8-num_bits);
+	}
+    }
+    shift_result.check_top();
+    *this = shift_result;
+    return 1;
+}
+
+bool GPU_WORD :: operator==(GPU_WORD &gw_2){
+    GPU_WORD gw_1;
+    gw_1=*this;
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==1)){
+        return false;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==0)){
+        return false;
+    }
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==0)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return false;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return false;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return false;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return false;
+	    }
+	}
+	return true;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==1)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return false;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return false;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return false;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return false;
+	    }
+	}
+	return true;    
+    }
+    //error
+    return false; 
+}
+
+bool GPU_WORD :: operator!=(GPU_WORD &gw_2){
+    GPU_WORD gw_1;
+    gw_1=*this;
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==1)){
+        return true;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==0)){
+        return true;
+    }
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==0)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return true;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return true;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return true;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return true;
+	    }
+	}
+	return false;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==1)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return true;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return true;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return true;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return true;
+	    }
+	}
+	return false;    
+    }
+    //error
+    return false; 
+}
+
+bool GPU_WORD :: operator>(GPU_WORD &gw_2){
+    GPU_WORD gw_1;
+    gw_1=*this;
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==1)){
+        return true;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==0)){
+        return false;
+    }
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==0)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return true;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return false;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return true;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return false;
+	    }
+	}
+	return false;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==1)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return false;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return true;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return false;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return true;
+	    }
+	}
+	return false;    
+    }
+    //error
+    return false; 
+}
+
+bool GPU_WORD :: operator<(GPU_WORD &gw_2){
+    GPU_WORD gw_1;
+    gw_1=*this;
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==1)){
+        return false;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==0)){
+        return true;
+    }
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==0)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return false;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return true;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return false;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return true;
+	    }
+	}
+	return false;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==1)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return true;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return false;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return true;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return false;
+	    }
+	}
+	return false;    
+    }
+    //error
+    return false; 
+}
+
+bool GPU_WORD :: operator>=(GPU_WORD &gw_2){
+    GPU_WORD gw_1;
+    gw_1=*this;
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==1)){
+        return true;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==0)){
+        return false;
+    }
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==0)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return true;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return false;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return true;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return false;
+	    }
+	}
+	return true;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==1)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return false;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return true;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return false;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return true;
+	    }
+	}
+	return true;    
+    }
+    //error
+    return false; 
+}
+
+bool GPU_WORD :: operator<=(GPU_WORD &gw_2){
+    GPU_WORD gw_1;
+    gw_1=*this;
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==1)){
+        return false;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==0)){
+        return true;
+    }
+    if((gw_1.m_neg==0)&&(gw_2.m_neg==0)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return false;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return true;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return false;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return true;
+	    }
+	}
+	return true;
+    }
+    if((gw_1.m_neg==1)&&(gw_2.m_neg==1)){
+        if(gw_1.m_top>gw_2.m_top){
+	    return true;
+	}
+	if(gw_1.m_top<gw_2.m_top){
+	    return false;
+	}
+	for(int i=gw_1.m_top-1;i>=0;i--){
+	    if(gw_1.m_data[i]>gw_2.m_data[i]){
+	        return true;
+	    }
+	    if(gw_1.m_data[i]<gw_2.m_data[i]){
+	        return true;
+	    }
+	}
+	return true;    
+    }
+    //error
+    return false; 
+}
+
+BN_PART GPU_WORD :: get_bit(int i){
+    int num_bits=i%(sizeof(BN_PART)*8);
+    int num_bnpart=i/(sizeof(BN_PART)*8);
+    return BN_PART_get_bit(m_data[num_bnpart],num_bits);
+}
+
+int GPU_WORD :: check_top(){
+    for(int i=BN_WORD_LENGTH_MAX-1;i>=0;i--){
+	if(i==0){
+	    if(m_data[i]==0){
+	        setzero();
+    		return 1;	    
+	    }
+	}
+        if(m_data[i]!=0){
+	    m_top=i+1;
+	    break;
+	}
+    }
+    if(m_top>BN_WORD_LENGTH_MAX/2){
+	//error
+        return -1;
+    }
+    return 1;
+}
+
+int GPU_WORD :: change_neg(){
+    if(m_neg==1){
+        m_neg=0;
+    }
+    else{    
+        m_neg=1;
+    }
+    check_top();
+    return 1;
+}
+
+
+int GPU_WORD :: BN_WORD_2_GPU_WORD(BN_WORD &bw){
+    memcpy(m_data,bw.m_data,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
+    m_neg=bw.m_neg;
+    m_top=bw.m_top;
+    return 1;
+}
+
+int GPU_WORD :: GPU_WORD_2_BN_WORD(BN_WORD &bw){
+    memcpy(bw.m_data,m_data,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
+    bw.m_neg=m_neg;
+    bw.m_top=m_top;
+    return 1;
+}
+
+int GPU_WORD :: setzero(){
+    memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
+    m_neg=0;
+    m_top=1;
+    return 1;
+}
+
+int GPU_WORD :: setone(){
+    memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));               
+    m_data[0]=1;
+    m_neg=0;                
+    m_top=1;
+    return 1;
+}
+
+int GPU_WORD :: print(){
+    if(m_neg==0){
+        printf("postive: top: %d\n", m_top);
+    }
+    if(m_neg==1){
+        printf("negtive: top: %d\n", m_top);
+    }
+    for(int i=m_top-1;i>=0;i--){
+        printf("%lx,",m_data[i]);
+    }
+    printf("\n");
+    return 1;
+}
 
 }

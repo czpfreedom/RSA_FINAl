@@ -18,7 +18,7 @@
 
 namespace namespace_rsa_final{
 
-__host__ __device__ int int_mod(const int a,const int b){
+int int_mod(const int a,const int b){
     int c=a%b;
     while(c<0){
         c=c+b;
@@ -28,7 +28,7 @@ __host__ __device__ int int_mod(const int a,const int b){
 
 #ifdef BN_PART_32
 
-__device__ __host__ int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u, BN_PART &v){
+int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u, BN_PART &v){
     unsigned long result = (((unsigned long)a)&LONG_MASK2l)*(((unsigned long)b)&LONG_MASK2l);
     u=(unsigned int)((result>>(sizeof(unsigned int)*8))&LONG_MASK2l);
     v=(unsigned int)((result)&LONG_MASK2l);
@@ -38,7 +38,7 @@ __device__ __host__ int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u
 #endif
 
 #ifdef BN_PART_64
-__device__ __host__ int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u, BN_PART &v){
+int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u, BN_PART &v){
     BN_PART ah= (a>>32)&LONG_MASK2l;
     BN_PART al= a&LONG_MASK2l;
     BN_PART bh= (b>>32)&LONG_MASK2l;
@@ -64,12 +64,12 @@ __device__ __host__ int BN_PART_mul(const BN_PART a, const BN_PART b, BN_PART &u
 }
 #endif
 
-__host__ __device__ int BN_PART_get_bit(const BN_PART a,int i){
+int BN_PART_get_bit(const BN_PART a,int i){
     return  (a&((BN_PART)1<<i))>>i;
 
 }
 
-__host__ int BN_PART_mod_inverse(const BN_PART a, const BN_PART b, BN_PART &a_inverse){
+int BN_PART_mod_inverse(const BN_PART a, const BN_PART b, BN_PART &a_inverse){
     BN_PART temp, R1, R2, t1,t2,q;
     if(b==0){
         R1=a;
@@ -108,14 +108,14 @@ __host__ int BN_PART_mod_inverse(const BN_PART a, const BN_PART b, BN_PART &a_in
     }
 }
 
-__host__ __device__ int BN_PART_mul_lo(const BN_PART a, const BN_PART b, BN_PART &result){
+int BN_PART_mul_lo(const BN_PART a, const BN_PART b, BN_PART &result){
     BN_PART temp_u, temp_v;
     BN_PART_mul(a,b,temp_u,temp_v);
     result=temp_v;
     return 0;
 }
 
-__host__ __device__ int BN_PART_mad_lo(const BN_PART a, const BN_PART b, BN_PART c, BN_PART &u, BN_PART &v){
+int BN_PART_mad_lo(const BN_PART a, const BN_PART b, BN_PART c, BN_PART &u, BN_PART &v){
     BN_PART temp_u, temp_v;
     BN_PART_mul(a,b,temp_u,temp_v);
     v=temp_v+c;
@@ -128,7 +128,7 @@ __host__ __device__ int BN_PART_mad_lo(const BN_PART a, const BN_PART b, BN_PART
     return 0;
 }
 
-__host__ __device__ int BN_PART_mad_hi(const BN_PART a, const BN_PART b, BN_PART c, BN_PART &u, BN_PART &v){
+int BN_PART_mad_hi(const BN_PART a, const BN_PART b, BN_PART c, BN_PART &u, BN_PART &v){
     BN_PART temp_u, temp_v;
     BN_PART_mul(a,b,temp_u,temp_v);
     v=temp_u+c;
@@ -141,7 +141,7 @@ __host__ __device__ int BN_PART_mad_hi(const BN_PART a, const BN_PART b, BN_PART
     return 0;
 }
 
-__host__ __device__ int BN_PART_any(BN_PART *a, int dmax){
+int BN_PART_any(BN_PART *a, int dmax){
     for(int i=0;i<dmax;i++){
         if(a[i]!=0){
             return 0;
@@ -151,12 +151,12 @@ __host__ __device__ int BN_PART_any(BN_PART *a, int dmax){
 }
 
 #ifdef BN_PART_32
-__host__ __device__ int BN_PART_add_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
+int BN_PART_add_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
     result = (BN_PART)((((unsigned long)a)+((unsigned long)b))%((unsigned long)n));
     return 0;
 }
 
-__host__ __device__ int BN_PART_mul_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
+int BN_PART_mul_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
     result = (BN_PART)((((unsigned long)a)*((unsigned long)b))%((unsigned long)n));
     return 0;
 }
@@ -165,7 +165,7 @@ __host__ __device__ int BN_PART_mul_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART
 
 
 #ifdef BN_PART_64
-__host__ __device__ int BN_PART_add_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
+int BN_PART_add_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
     a=a%n;
     b=b%n;
     BN_PART temp_result=a+b;
@@ -179,7 +179,7 @@ __host__ __device__ int BN_PART_add_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART
     return 0;
 }
 
-__host__ __device__ int BN_PART_mul_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
+int BN_PART_mul_mod(BN_PART a, BN_PART b, BN_PART n, BN_PART &result){
     a=a%n;
     b=b%n;
     BN_PART temp_result=0;

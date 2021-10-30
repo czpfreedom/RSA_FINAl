@@ -2,6 +2,8 @@
 #define RSA_FINAL_C_H
 
 #include "config.h"
+#include "string.h"
+#include "iostream"
 
 namespace namespace_rsa_final {
 
@@ -20,27 +22,35 @@ extern "C" {
 /***** BIGNUM **********************************/
 
 
-typedef struct bignumber_word_st{
-    int dmax;
-    BN_PART *d;
-}BN_WORD;
+class BN_WORD{
 
-BN_WORD *BN_WORD_new(int dmax);
+public:
 
-void BN_WORD_free(BN_WORD *a);
+    BN_PART m_data[BN_WORD_LENGTH_MAX];
+    int m_neg;
+    int m_top;
 
-/************************************************/
+    BN_WORD();
+    BN_WORD(BN_WORD &bn_word);
+    BN_WORD& operator=(BN_WORD &bn_word);
+    ~BN_WORD();
+    
+    int setzero();
+    int setone();
 
+    int print();   
 
-int BN_mod_exp_cuda(BN_WORD *rr, BN_WORD *a, BN_WORD *p,BN_WORD *m);
-// rr=a^p mod m   
-// return 1 right
-// return 0 error  
+    int BN_WORD_2_Str(std:: string str);
+    int Str_2_BN_WORD(std:: string str);
 
-}
+};
+
+int BN_mod_exp_cuda(BN_WORD &rr, BN_WORD &a, BN_WORD &p,BN_WORD &m);
+
 
 #ifdef __cplusplus
 }
 #endif
 
+}
 #endif

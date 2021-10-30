@@ -1,8 +1,6 @@
 #ifndef RSA_FINAL_LOG_H
 #define RSA_FINAL_LOG_H
 
-#define RSA_FINAL_LOG "/home/nx2/rsa_finali_new/log"
-
 #include "stdio.h"
 #include "rsa_final_time_stamp.h"
 

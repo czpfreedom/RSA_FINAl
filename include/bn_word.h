@@ -3,84 +3,49 @@
 
 #include "bn_part.h"
 #include "stdio.h"
-#include "string.h"
-#include "iostream"
 
 namespace namespace_rsa_final{
 
-__device__ BN_WORD *BN_WORD_new_device(int dmax);
+class GPU_WORD{
 
-__device__ void BN_WORD_free_device(BN_WORD *a);
+public:
+      BN_PART m_data[BN_WORD_LENGTH_MAX];
+    int m_neg;
+    int m_top;
 
-__host__ __device__ void BN_WORD_setzero(BN_WORD *a); // a->0
+    __host__ __device__ GPU_WORD();
+    __host__ __device__ GPU_WORD(GPU_WORD &gw);
+    __host__ __device__ GPU_WORD& operator=(GPU_WORD &gw);
+    __host__ __device__ ~GPU_WORD();
 
-__host__ __device__ void BN_WORD_setone(BN_WORD *a); //a->1
+    __host__ __device__ GPU_WORD& operator+ (GPU_WORD &gw);
+    __host__ __device__ GPU_WORD& operator- (GPU_WORD &gw);
+    __host__ __device__ GPU_WORD& operator* (GPU_WORD &gw);
+    __host__ __device__ GPU_WORD& operator/ (GPU_WORD &gw);
+    __host__ __device__ GPU_WORD& operator% (GPU_WORD &gw);
+    
+    __host__ __device__ bool operator==(GPU_WORD &gw_2);
+    __host__ __device__ bool operator!=(GPU_WORD &gw_2);
+    __host__ __device__ bool operator> (GPU_WORD &gw_2);
+    __host__ __device__ bool operator< (GPU_WORD &gw_2);
+    __host__ __device__ bool operator>=(GPU_WORD &gw_2);
+    __host__ __device__ bool operator<=(GPU_WORD &gw_2);  
 
-__host__ __device__ int BN_WORD_copy(const BN_WORD *a,BN_WORD *b);
-//-1: a->dmax!=b->dmax
-//0: right
+    __host__ __device__ BN_PART get_bit(int i);
+    __host__ __device__ int left_shift (int bits);
+    __host__ __device__ int right_shift(int bits);
+    __host__ __device__ int check_top(); //check top and zeor together
+    __host__ __device__ int change_neg();
+    
+    __host__ int BN_WORD_2_GPU_WORD(BN_WORD &bw);
+    __host__ int GPU_WORD_2_BN_WORD(BN_WORD &bw);
 
-__device__ int BN_WORD_print_device(const BN_WORD *a);
+    __host__ __device__ int setzero();
+    __host__ __device__ int setone();
 
-__host__ int BN_WORD_print_log(FILE *out, BN_WORD *a);
+    __host__ __device__ int print();
 
-__host__ __device__ int BN_WORD_cmp(const BN_WORD *a,const  BN_WORD *b);
-// -1: a->dmax!=b->dmax
-// 0: right
-// 1: a is bigger
-// 2: b is bigger
-
-__host__ __device__ BN_PART bn_word_get_bit(const BN_WORD *a, int i);
-
-__host__ __device__ int BN_WORD_left_shift(const BN_WORD *a,BN_WORD *b,int words);
-// -1: a->dmax!=b->dmax
-// -2: shift_words>a->dmax
-// 0: right
-
-__host__ __device__ int BN_WORD_left_shift_bits(const BN_WORD *a,BN_WORD *b,int bits);
-// -1: a->dmax!=b->dmax
-// 0: right
-// need some test
-
-__host__ __device__ int BN_WORD_right_shift(const BN_WORD *a,BN_WORD *b,int words);
-// -1: a->dmax!=b->dmax
-// -2: shift_words>a->dmax
-// 0: right
-
-__host__ __device__ int BN_WORD_right_shift_bits(const BN_WORD *a,BN_WORD *b,int bits);
-// -1: a->dmax!=b->dmax
-// 0: right
-// need some test
-
-__host__ __device__ int BN_WORD_add(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
-
-__host__ __device__ int BN_WORD_sub(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
-// -2: a<b
-// 0: right
-
-__device__ int BN_WORD_mul_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *result);
-
-__host__ int BN_WORD_div(const BN_WORD *a, const BN_WORD *b, BN_WORD *q, BN_WORD *r);
-
-__device__ int BN_WORD_div_device(const BN_WORD *a, const BN_WORD *b, BN_WORD *q, BN_WORD *r);
-
-__host__ int BN_WORD_mod (const BN_WORD *a, const BN_WORD *n, BN_WORD *result);
-
-__device__ int BN_WORD_mod_device (const BN_WORD *a, const BN_WORD *n, BN_WORD *result);
-
-__host__ int BN_WORD_add_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, BN_WORD *result);
-
-__host__ int BN_WORD_mul_mod(const BN_WORD *a, const BN_WORD *b, const BN_WORD *n, BN_WORD *result);
-
-__host__ __device__ int BN_PART_BN_WORD_transform(BN_PART a, BN_WORD *result);
-
-__host__ int BN_WORD_BN_PART_mod (BN_WORD *a, BN_PART n, BN_PART &result);
-
-__device__ int BN_WORD_BN_PART_mod_device (BN_WORD *a, BN_PART n, BN_PART &result);
-
-__host__ int BN_WORD_2_Str(BN_WORD *a, std::string str);
-
-__host__ int Str_2_BN_WORD(BN_WORD *a, std::string str);
+};
 
 }
 
