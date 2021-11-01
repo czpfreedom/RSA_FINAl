@@ -3,6 +3,94 @@
 
 namespace namespace_rsa_final{
 
+BN_WORD& BN_WORD :: operator+ (BN_WORD &bw){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw);
+    gw_1=gw_1+gw_2;
+    gw_1.GPU_WORD_2_BN_WORD(*this);
+    return *this;
+}
+
+BN_WORD& BN_WORD :: operator- (BN_WORD &bw){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw);
+    gw_1=gw_1-gw_2;
+    gw_1.GPU_WORD_2_BN_WORD(*this);
+    return *this;
+}
+
+BN_WORD& BN_WORD :: operator* (BN_WORD &bw){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw);
+    gw_1=gw_1*gw_2;
+    gw_1.GPU_WORD_2_BN_WORD(*this);
+    return *this;
+}
+
+BN_WORD& BN_WORD :: operator/ (BN_WORD &bw){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw);
+    gw_1=gw_1/gw_2;
+    gw_1.GPU_WORD_2_BN_WORD(*this);
+    return *this;
+}
+
+BN_WORD& BN_WORD :: operator% (BN_WORD &bw){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw);
+    gw_1=gw_1%gw_2;
+    gw_1.GPU_WORD_2_BN_WORD(*this);
+    return *this;
+}
+
+bool BN_WORD :: operator==(BN_WORD &bw_2){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw_2);
+    return (gw_1==gw_2);
+}
+
+bool BN_WORD :: operator!=(BN_WORD &bw_2){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw_2);
+    return (gw_1!=gw_2);
+}
+
+bool BN_WORD :: operator> (BN_WORD &bw_2){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw_2);
+    return (gw_1>gw_2);
+}
+
+bool BN_WORD :: operator< (BN_WORD &bw_2){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw_2);
+    return (gw_1<gw_2);
+}
+
+bool BN_WORD :: operator>=(BN_WORD &bw_2){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw_2);
+    return (gw_1>=gw_2);
+}
+
+bool BN_WORD :: operator<=(BN_WORD &bw_2){
+    GPU_WORD gw_1,gw_2;
+    gw_1.BN_WORD_2_GPU_WORD(*this);
+    gw_2.BN_WORD_2_GPU_WORD(bw_2);
+    return (gw_1<=gw_2);
+}
+
+
 GPU_WORD :: GPU_WORD(){
     memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
     m_neg=0;
@@ -72,10 +160,10 @@ GPU_WORD& GPU_WORD :: operator+(GPU_WORD &gw_2){
 		if(add_result.m_data[i]>gw_1.m_data[i]){
 		    carry1=1;
 		}
-		add_result.m_data[i]=add_result.m_data[i]-gw_2.m_data[i];
-		if(add_result.m_data[i]>gw_2.m_data[i]){
+		if(add_result.m_data[i]<gw_2.m_data[i]){
 		    carry1=1;
 		}
+		add_result.m_data[i]=add_result.m_data[i]-gw_2.m_data[i];
 	    }
 	    add_result.m_neg=0;
 	    add_result.check_top();
@@ -91,10 +179,10 @@ GPU_WORD& GPU_WORD :: operator+(GPU_WORD &gw_2){
 		if(add_result.m_data[i]>gw_2.m_data[i]){
 		    carry1=1;
 		}
-		add_result.m_data[i]=add_result.m_data[i]-gw_1.m_data[i];
-		if(add_result.m_data[i]>gw_1.m_data[i]){
+		if(add_result.m_data[i]<gw_1.m_data[i]){
 		    carry1=1;
 		}
+		add_result.m_data[i]=add_result.m_data[i]-gw_1.m_data[i];
 	    }
 	    add_result.m_neg=1;
 	    add_result.check_top();
@@ -119,10 +207,10 @@ GPU_WORD& GPU_WORD :: operator+(GPU_WORD &gw_2){
 		if(add_result.m_data[i]>gw_1.m_data[i]){
 		    carry1=1;
 		}
-		add_result.m_data[i]=add_result.m_data[i]-gw_2.m_data[i];
-		if(add_result.m_data[i]>gw_2.m_data[i]){
+		if(add_result.m_data[i]<gw_2.m_data[i]){
 		    carry1=1;
 		}
+		add_result.m_data[i]=add_result.m_data[i]-gw_2.m_data[i];
 	    }
 	    add_result.m_neg=1;
 	    add_result.check_top();
@@ -138,10 +226,10 @@ GPU_WORD& GPU_WORD :: operator+(GPU_WORD &gw_2){
 		if(add_result.m_data[i]>gw_2.m_data[i]){
 		    carry1=1;
 		}
-		add_result.m_data[i]=add_result.m_data[i]-gw_1.m_data[i];
-		if(add_result.m_data[i]>gw_1.m_data[i]){
+		if(add_result.m_data[i]<gw_1.m_data[i]){
 		    carry1=1;
 		}
+		add_result.m_data[i]=add_result.m_data[i]-gw_1.m_data[i];
 	    }
 	    add_result.m_neg=1;
 	    add_result.check_top();
@@ -171,10 +259,10 @@ GPU_WORD& GPU_WORD :: operator*(GPU_WORD &gw_2){
     mul_result.setzero();
     gw_1_mul=gw_1;
     for(int i=0;i<sizeof(BN_PART)*8*gw_2.m_top;i++){
-	gw_1_mul.left_shift(1);
         if(gw_2.get_bit(i)==1){
 	    mul_result=mul_result+gw_1_mul;
 	}
+	gw_1_mul.left_shift(1);
     }
     if(gw_1.m_neg==gw_2.m_neg){
         mul_result.m_neg=0;
@@ -198,6 +286,9 @@ GPU_WORD& GPU_WORD :: operator/(GPU_WORD &gw_2){
     gw_2_neg=gw_2;
     zero.setzero();
     one.setone();
+    if(gw_2==zero){
+        //error
+    }
     if(gw_1.m_neg==1){
         gw_1_neg.change_neg();
     }
@@ -226,6 +317,10 @@ GPU_WORD& GPU_WORD :: operator/(GPU_WORD &gw_2){
 	}
 	gw_2_neg.right_shift(1);
 	one.right_shift(1);
+    }
+    if(gw_1_neg>=gw_2_neg){
+	gw_1_neg=gw_1_neg-gw_2_neg;
+	div_result=div_result+one;
     }
     if(gw_1.m_neg==gw_2.m_neg){
         div_result.m_neg=0;
@@ -278,6 +373,9 @@ GPU_WORD& GPU_WORD :: operator%(GPU_WORD &gw_2){
 	gw_2_neg.right_shift(1);
 	one.right_shift(1);
     }
+    if(gw_1_neg>=gw_2_neg){
+	gw_1_neg=gw_1_neg-gw_2_neg;
+    }
     rem_result=gw_1_neg;
     rem_result.check_top();
     *this = rem_result;
@@ -287,46 +385,44 @@ GPU_WORD& GPU_WORD :: operator%(GPU_WORD &gw_2){
 int  GPU_WORD :: left_shift (int bits){
     int num_bits=bits%(sizeof(BN_PART)*8);
     int num_bnpart=bits/(sizeof(BN_PART)*8);
-    GPU_WORD shift_result;
     GPU_WORD gw;
     gw=*this;
-    shift_result.m_neg=gw.m_neg;
-    shift_result.m_top=gw.m_top;
+    setzero();
+    m_neg=gw.m_neg;
+    m_top=gw.m_top;
     for (int i=0;i<num_bnpart;i++){
-        shift_result.m_data[i]=0;
+        m_data[i]=0;
     }
-    shift_result.m_data[num_bnpart]=gw.m_data[0]<<num_bits;
+    m_data[num_bnpart]=gw.m_data[0]<<num_bits;
     for (int i=num_bnpart+1;i<=num_bnpart+gw.m_top;i++){
         if(num_bits==0){
-            shift_result.m_data[i]=gw.m_data[i-num_bnpart];
+            m_data[i]=gw.m_data[i-num_bnpart];
         }
         else{
-	    shift_result.m_data[i]=gw.m_data[i-num_bnpart]<<num_bits+gw.m_data[i-num_bnpart-1]>>(sizeof(BN_PART)*8-num_bits);
+	    m_data[i]=(gw.m_data[i-num_bnpart]<<num_bits)+(gw.m_data[i-num_bnpart-1]>>(sizeof(BN_PART)*8-num_bits));
         }
     }
-    shift_result.check_top();
-    *this=shift_result;
+    check_top();
     return 1;
 }
 
 int GPU_WORD :: right_shift(int bits){
     int num_bits=bits%(sizeof(BN_PART)*8);
     int num_bnpart=bits/(sizeof(BN_PART)*8);	
-    GPU_WORD shift_result;
     GPU_WORD gw;
     gw=*this;
-    shift_result.m_neg=gw.m_neg;
-    shift_result.m_top=gw.m_top;
+    setzero();
+    m_neg=gw.m_neg;
+    m_top=gw.m_top;
     for (int i=0;i<gw.m_top-num_bnpart;i++){
 	if(num_bits==0){	    
-	    shift_result.m_data[i]=gw.m_data[i+num_bnpart];
+	    m_data[i]=gw.m_data[i+num_bnpart];
 	}
 	else{
-	    shift_result.m_data[i]=gw.m_data[i+num_bnpart]>>num_bits+gw.m_data[i+num_bnpart+1]<<(sizeof(BN_PART)*8-num_bits);
+	    m_data[i]=(gw.m_data[i+num_bnpart]>>num_bits)+(gw.m_data[i+num_bnpart+1]<<(sizeof(BN_PART)*8-num_bits));
 	}
     }
-    shift_result.check_top();
-    *this = shift_result;
+    check_top();
     return 1;
 }
 

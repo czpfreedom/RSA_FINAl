@@ -6,7 +6,7 @@
 #ifdef BN_PART_64
 #define LOOP_NUM 1000
 
-using namespace std;
+using namespace namespace_rsa_final;
 
 int main(){
 
@@ -45,8 +45,8 @@ int main(){
 	    sum=sum+1;
         }
     }
-    cout<<"test_bn_part_mod_inverse b==0:"<<endl;
-    cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<endl;
+    std::cout<<"test_bn_part_mod_inverse b==0:"<<std:: endl;
+    std::cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<std :: endl;
 
     BN_free(open_a);
     BN_free(open_b);
@@ -81,8 +81,8 @@ int main(){
 	    sum=sum+1;
         }
     }
-    cout<<"test_bn_part_mod_inverse b!=0:"<<endl;
-    cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<endl;
+    std::cout<<"test_bn_part_mod_inverse b!=0:"<<std::endl;
+    std::cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<std::endl;
 
     BN_free(open_a);
     BN_free(open_b);
@@ -119,8 +119,8 @@ int main(){
 	}
     }
 
-    cout<<"test_bn_part_add_mod:"<<endl;
-    cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<endl;
+    std::cout<<"test_bn_part_add_mod:"<<std::endl;
+    std::cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<std::endl;
 
     BN_free(open_a);
     BN_free(open_b);
@@ -158,8 +158,8 @@ int main(){
 	}
     }
 
-    cout<<"test_bn_part_mul_mod:"<<endl;
-    cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<endl;
+    std::cout<<"test_bn_part_mul_mod:"<<std::endl;
+    std::cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<std::endl;
 
     BN_free(open_a);
     BN_free(open_b);

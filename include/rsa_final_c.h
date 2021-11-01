@@ -34,7 +34,20 @@ public:
     BN_WORD(BN_WORD &bn_word);
     BN_WORD& operator=(BN_WORD &bn_word);
     ~BN_WORD();
-    
+
+    BN_WORD& operator+ (BN_WORD &bw);
+    BN_WORD& operator- (BN_WORD &bw);
+    BN_WORD& operator* (BN_WORD &bw);
+    BN_WORD& operator/ (BN_WORD &bw);
+    BN_WORD& operator% (BN_WORD &bw);
+
+    bool operator==(BN_WORD &bw_2);
+    bool operator!=(BN_WORD &bw_2);
+    bool operator> (BN_WORD &bw_2);
+    bool operator< (BN_WORD &bw_2);
+    bool operator>=(BN_WORD &bw_2);
+    bool operator<=(BN_WORD &bw_2);
+
     int setzero();
     int setone();
 
