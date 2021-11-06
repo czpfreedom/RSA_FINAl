@@ -4,6 +4,7 @@
 #include "string.h"
 #include "iostream"
 #include "sstream"
+#include <iomanip>
 
 namespace namespace_rsa_final{
 
@@ -34,6 +35,27 @@ BN_WORD:: ~BN_WORD(){
 
 }
 
+int BN_WORD:: check_top(){
+    for(int i=BN_WORD_LENGTH_MAX-1;i>=0;i--){
+	if(i==0){
+	    if(m_data[i]==0){
+	        setzero();
+    		return 1;	    
+	    }
+	}
+        if(m_data[i]!=0){
+	    m_top=i+1;
+	    break;
+	}
+    }
+    if(m_top>BN_WORD_LENGTH_MAX/2){
+	//error
+        return -1;
+    }
+    return 1;
+
+}
+
 int BN_WORD:: setzero(){
     memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
     m_neg=0;
@@ -46,6 +68,14 @@ int BN_WORD:: setone(){
     m_data[0]=1;
     m_neg=0;
     m_top=1;
+    return 1;
+}
+
+int BN_WORD:: setR(){
+    memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
+    m_data[32]=1;
+    m_neg=0;
+    m_top=33;
     return 1;
 }
 
@@ -63,36 +93,28 @@ int BN_WORD:: print(){
     return 1;
 }
 
-int BN_WORD:: BN_WORD_2_Str(std::string str){
-    std:: ostringstream ostr1;
+int BN_WORD:: BN_WORD_2_Str(std::string &str){
+    std:: stringstream fmt;
     for(int i=m_top-1;i>=0;i--){
-        ostr1<<std::hex<<m_data[i]<<",";
+	fmt<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<std::hex<<m_data[i];
     }
-    str=ostr1.str();
+    fmt>>str;
     return 0;
 }
 
 int BN_WORD:: Str_2_BN_WORD(std::string str){
-    int str_num;
+    std:: string sub_str;
+    int top=0;
     setzero();
-    for(int i=0;i<BN_WORD_LENGTH_MAX;i++){
-        for(int j=0;j<sizeof(BN_PART)*8;j++){
-            str_num=i*sizeof(BN_PART)*8+j;
-            if((str[str_num]>='0')&&(str[str_num]<='9')){
-                m_data[i]=m_data[i]*0xf+str[str_num]-'0';
-            }
-            if((str[str_num]>='A')&&(str[str_num]<='F')){
-                m_data[i]=m_data[i]*0xf+str[str_num]-'A'+10;
-            }
-            if((str[str_num]>='a')&&(str[str_num]<='f')){
-                m_data[i]=m_data[i]*0xf+m_data[str_num]-'a'+10;
-            }
-            if(str_num==str.length()-1){
-                m_top=i+1;
-                return 0;
-            }
-        }
+    std:: stringstream fmt;
+    for(int i=str.length()/(sizeof(BN_PART)*2)-1;i>=0;i--){
+        sub_str=str.substr(i*(sizeof(BN_PART)*2),sizeof(BN_PART)*2);
+	fmt.clear();
+	fmt<<std::hex<<sub_str;
+	fmt>>m_data[top];
+	top++;
     }
+    m_top=top;
     return 1;
 }
 

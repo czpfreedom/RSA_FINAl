@@ -95,11 +95,11 @@ double Time_System :: CPU_TIME(double start_time, double end_time){
 }
 
 float Time_System :: CUDA_TIME(cudaEvent_t &start_time, cudaEvent_t &end_time){
-     cudaEventSynchronize(start_time);
-     cudaEventSynchronize(end_time);
-     float time;
-     cudaEventElapsedTime(&time, start_time, end_time);
-     return time;
+    cudaEventSynchronize(start_time);
+    cudaEventSynchronize(end_time);
+    float time;
+    cudaEventElapsedTime(&time, start_time, end_time);
+    return time;
 }
 
 }

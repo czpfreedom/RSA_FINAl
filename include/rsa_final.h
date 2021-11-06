@@ -14,6 +14,7 @@ public:
     BN_WORD m_n;
     BN_WORD m_p;
     BN_WORD m_q;
+
 };
 
 /************************************************/
@@ -27,22 +28,24 @@ public:
     BN_WORD m_one;
     BN_WORD m_R;
     BN_PART m_n0_inverse;
-
+    
     FILE *m_log_file;
     Time_Stamp m_time_stamp;
     Time_System m_time_system;
-
+    
+    CRT_N ();
     CRT_N (RSA_N rsa_n);
-    CRT_N (CRT_N &crt_n)=delete;
-    CRT_N& operator=(CRT_N &crt_n)=delete;
-    ~CRT_N ();
+    CRT_N (CRT_N &crt_n);
+    CRT_N& operator= (CRT_N &crt_n);
 
-    int CRT_MUL_MOD(BN_WORD a, BN_WORD b, BN_WORD result);
-    int CRT_EXP_MOD(BN_WORD a, BN_WORD e, BN_WORD result);
-    int CRT_EXP_MOD_PARALL(BN_WORD a, BN_WORD e, BN_WORD result);
+    ~CRT_N ();
+    int CRT_MOD_MUL(BN_WORD a, BN_WORD b, BN_WORD &result);
+    int CRT_MOD_EXP(BN_WORD a, BN_WORD e, BN_WORD &result);
+//    int CRT_EXP_MOD_PARALL(BN_WORD a, BN_WORD e, BN_WORD result);
 
     int log_create();
     int log_info(LOG_TYPE log_type);
+    int time_info(LOG_TYPE log_type, TIME_TYPE time_type);
     int log_quit();
 
 };

@@ -7,21 +7,6 @@
 
 using namespace std;
 
-int BN_WORD_cmp_test(const BN_WORD *a,const BN_WORD *b){
-	if((a->dmax)!=(b->dmax)){
-	    return -1;
-	}
-	for(int i=(a->dmax)-1;i>=0;i--){
-	    if(a->d[i]>b->d[i]){
-		return 1;
-	    }
-	    if(a->d[i]<b->d[i]){
-		return 2;
-	    }
-	}
-	return 0;
-}
-
 int main(){
 
     BIGNUM *open_a, *open_b, *open_e, *open_n, *open_result; 

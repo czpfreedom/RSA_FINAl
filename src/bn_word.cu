@@ -775,6 +775,14 @@ int GPU_WORD :: setone(){
     return 1;
 }
 
+int GPU_WORD :: setR(){
+    memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));        
+    m_data[32]=1;
+    m_neg=0;            
+    m_top=33;
+    return 1;
+}
+
 int GPU_WORD :: print(){
     if(m_neg==0){
         printf("postive: top: %d\n", m_top);

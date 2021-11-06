@@ -67,7 +67,8 @@ int BN_WORD_openssl_transform(BIGNUM *a, BN_WORD &b){
 
 int openssl_BN_WORD_transform(BIGNUM *a, BN_WORD &b){
     BN_rand(a,sizeof(BN_PART)*8*b.m_top,0,0);
-    for(int i=0;i<b.m_top-1;i++){
+
+    for(int i=0;i<b.m_top;i++){
 	a->d[i]=(unsigned long)(b.m_data[i]);
     }
     return 1;
@@ -84,7 +85,7 @@ int BN_WORD_openssl_prime_generation(RSA_N &rsa_n, int bits){
     BN_WORD_openssl_transform(prime,rsa_n.m_p);
     BN_generate_prime_ex(prime,p_bits,0,NULL,NULL,NULL);
     BN_WORD_openssl_transform(prime,rsa_n.m_q);
-//    rsa_n.m_n=rsa_n.m_p*rsa_n.m_q;
+    rsa_n.m_n=rsa_n.m_p*rsa_n.m_q;
     return 1;
 }
 

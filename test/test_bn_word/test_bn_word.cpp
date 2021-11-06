@@ -2,6 +2,7 @@
 #include "bn_openssl.h"
 #include "iostream"
 #include "bn/bn_lcl.h"
+#include "string.h"
 
 #define DMAX 32
 #define LOOP_NUM 1024
@@ -11,9 +12,30 @@ using namespace namespace_rsa_final;
 int main(){
     BIGNUM *open_a, *open_b, *open_n, *open_result, *open_q, *open_r;
     BN_WORD bn_a, bn_b, bn_n, bn_result,bn_open_result, bn_q, bn_r;
-    
+    std::string str_a;
+
     BN_CTX *ctx;
     int sum;
+
+//test_bn_2_str
+    
+    open_a=BN_new();
+    sum=0;
+    for (int i=0;i<LOOP_NUM;i++){
+	BN_rand(open_a,DMAX*sizeof(BN_PART)*8,0,0);
+	BN_WORD_openssl_transform(open_a,bn_a);
+	bn_a.BN_WORD_2_Str(str_a);
+	bn_result.Str_2_BN_WORD(str_a);
+	if(bn_a==bn_result){
+	    sum=sum+1;
+	}
+    }
+    std::cout<<"test_bn_2_str:"<<std::endl;
+    std::cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<std::endl;
+
+    BN_free(open_a);
+
+
 
 // test_bn_word_add
     open_a=BN_new();
@@ -246,9 +268,9 @@ int main(){
     ctx=BN_CTX_new();
 
     sum=0;
-    for (int i=0;i<LOOP_NUM;i++){
+    for (int i=1;i<LOOP_NUM;i++){
 	BN_rand(open_a,DMAX*sizeof(BN_PART)*8,0,0);
-	BN_rand(open_b,DMAX*sizeof(BN_PART)*8,0,0);
+	BN_rand(open_b,i,0,0);
 	BN_rand(open_n,DMAX*sizeof(BN_PART)*8,0,0);
 
 	BN_WORD_openssl_transform(open_a,bn_a);
@@ -264,7 +286,7 @@ int main(){
 	}
     }
     std:: cout<<"test_bn_word_mul_mod:"<<std:: endl;
-    std:: cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<std:: endl;
+    std:: cout<<"total:"<< LOOP_NUM-1<<", right:"<<sum<<std:: endl;
 
     BN_free(open_a);
     BN_free(open_b);

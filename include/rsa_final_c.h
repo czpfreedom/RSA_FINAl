@@ -50,10 +50,12 @@ public:
 
     int setzero();
     int setone();
+    int setR();
+    int check_top();
 
     int print();   
 
-    int BN_WORD_2_Str(std:: string str);
+    int BN_WORD_2_Str(std:: string &str);
     int Str_2_BN_WORD(std:: string str);
 
 };
