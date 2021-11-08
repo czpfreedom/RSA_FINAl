@@ -13,7 +13,9 @@ CRT_N :: CRT_N (RSA_N rsa_n){
     m_rsa_n=rsa_n;
     m_zero.setzero();
     m_one.setone();
-    m_R.setR();
+    int R_top=rsa_n.m_n.m_top+1;
+    m_R.setR(R_top);
+    m_R=m_R%m_rsa_n.m_n;
     BN_PART_mod_inverse(m_rsa_n.m_n.m_data[0], 0, m_n0_inverse);
     m_n0_inverse=0-m_n0_inverse;
 //n_neg
@@ -71,7 +73,6 @@ int CRT_N :: CRT_MOD_MUL(BN_WORD a, BN_WORD b, BN_WORD &result){
     cudaMallocManaged((void**)&(bp_n),WARP_SIZE*sizeof(BN_PART));
     cudaMallocManaged((void**)&(bp_result),WARP_SIZE*sizeof(BN_PART));
 
-
     for(int i=0;i<WARP_SIZE;i++){
         bp_a[i]=0;
         bp_b[i]=0;
@@ -90,7 +91,7 @@ int CRT_N :: CRT_MOD_MUL(BN_WORD a, BN_WORD b, BN_WORD &result){
 	bp_n[i]=n.m_data[i];
     }
     
-    GPU_WORD_mul_mod<<<1,WARP_SIZE>>>(bp_a,bp_b,bp_n,m_n0_inverse,bp_result);
+    GPU_WORD_mod_mul<<<1,WARP_SIZE>>>(bp_a,bp_b,bp_n,m_n0_inverse,bp_result);
     cudaDeviceSynchronize();
 
     result.setzero(); 
@@ -102,6 +103,61 @@ int CRT_N :: CRT_MOD_MUL(BN_WORD a, BN_WORD b, BN_WORD &result){
     cudaFree(bp_result);
     return 1;
 }
+
+int CRT_N :: CRT_MOD_EXP(BN_WORD a, BN_WORD e, BN_WORD &result){
+    BN_WORD aR;
+    BN_WORD n=m_rsa_n.m_n;
+    aR=(a*m_R)%n;
+    
+    int E_bits=e.m_top*sizeof(BN_PART)*8;
+   
+    BN_PART *bp_a;
+    BN_PART *bp_e;
+    BN_PART *bp_r;
+    BN_PART *bp_n;
+    BN_PART *bp_result;
+    cudaMallocManaged((void**)&(bp_a),WARP_SIZE*sizeof(BN_PART));
+    cudaMallocManaged((void**)&(bp_e),WARP_SIZE*sizeof(BN_PART));
+    cudaMallocManaged((void**)&(bp_r),WARP_SIZE*sizeof(BN_PART));
+    cudaMallocManaged((void**)&(bp_n),WARP_SIZE*sizeof(BN_PART));
+    cudaMallocManaged((void**)&(bp_result),WARP_SIZE*sizeof(BN_PART));
+
+    for(int i=0;i<WARP_SIZE;i++){
+        bp_a[i]=0;
+        bp_e[i]=0;
+	bp_r[i]=0;
+        bp_n[i]=0;
+        bp_result[i]=0;
+    }
+
+    for(int i=0;i<aR.m_top;i++){
+	bp_a[i]=aR.m_data[i];
+    }
+    
+    for(int i=0;i<e.m_top;i++){
+	bp_e[i]=e.m_data[i];
+    }
+    for(int i=0;i<n.m_top;i++){
+	bp_n[i]=n.m_data[i];
+    }
+    for(int i=0;i<m_R.m_top;i++){
+	bp_r[i]=m_R.m_data[i];
+    }
+
+    GPU_WORD_mod_exp<<<1,WARP_SIZE*2>>>(bp_a,bp_e,E_bits,bp_r,bp_n,m_n0_inverse,bp_result);
+    cudaDeviceSynchronize();
+
+    result.setzero(); 
+    for(int i=0;i<WARP_SIZE;i++){
+	result.m_data[i]=bp_result[i];
+    }
+    result.m_top=32;
+    
+    cudaFree(bp_result);
+    return 1;
+    
+}
+
 
 int CRT_N :: log_create(){
 
@@ -125,119 +181,6 @@ int CRT_N :: log_quit(){
     fclose(m_log_file);
     return 1; 
     
-}
-
-__device__ int  GPU_WORD_parallel_Mon(BN_PART *A, BN_PART *B, BN_PART *N, BN_PART n0_inverse, BN_PART *M, BN_PART *U, BN_PART *V, BN_PART *C, BN_PART *result, int thread_id){
-    BN_PART p_a, p_b, p_u, p_v,ptemp_u,p_n,p_m;
-    p_a=A[thread_id];
-    p_n=N[thread_id];
-    p_u=0;
-    p_v=0;
-    M[thread_id]=0;
-    C[thread_id]=0;
-
-    for(int i=0;i<WARP_SIZE;i++){
-        p_b=B[i];
-        BN_PART_mad_lo(p_a,p_b,p_v,ptemp_u,p_v);
-        p_u=ptemp_u+p_u;
-        BN_PART_mul_lo(p_v,n0_inverse,M[thread_id]);
-        __syncthreads();
-        p_m=M[0];
-        BN_PART_mad_lo(p_n,p_m,p_v,ptemp_u,p_v);
-        p_u=ptemp_u+p_u;
-        V[thread_id]=p_v;
-        __syncthreads();
-        p_v=V[int_mod(thread_id+1,WARP_SIZE)];
-        p_v=p_u+p_v;
-        if(p_v<p_u){
-            p_u=1;
-        }
-        else{
-            p_u=0;
-        }
-        BN_PART_mad_hi(p_a,p_b,p_v,ptemp_u,p_v);
-        p_u=ptemp_u+p_u;
-        BN_PART_mad_hi(p_n,p_m,p_v,ptemp_u,p_v);
-        p_u=ptemp_u+p_u;
-    }
-    C[thread_id]=p_u;
-    U[thread_id]=p_u;
-    __syncthreads();//
-    while(BN_PART_any(U,WARP_SIZE)==0){
-        p_u=U[int_mod(thread_id-1,WARP_SIZE)];
-        if(thread_id==0){
-            p_u=0;
-        }
-        p_v=p_u+p_v;
-        if(p_v<p_u){
-            p_u=1;
-        }
-        else{
-            p_u=0;
-        }
-        C[thread_id]=C[thread_id]+p_u;
-        U[thread_id]=p_u;
-        __syncthreads();
-    }
-    result[thread_id]=p_v;
-
-    return 1;	
-}
-
-
-__device__ int GPU_WORD_delete_carry(BN_PART *result, BN_PART *N, BN_PART c){
-    GPU_WORD gw_result, gw_n;
-    gw_result.setzero();
-    gw_n.setzero();
-    for(int i=0;i<WARP_SIZE;i++){
-        gw_result.m_data[i]=result[i];
-	gw_n.m_data[i]=N[i];
-    }
-    gw_result.m_data[WARP_SIZE]=c;
-    gw_result.m_top=WARP_SIZE+1;
-    gw_n.m_top=WARP_SIZE;
-    gw_result.check_top();
-    gw_result=gw_result%gw_n;
-    for(int i=0;i<WARP_SIZE;i++){
-        result[i]=gw_result.m_data[i];
-    }
-    return 1;
-}
-
-
-
-__global__ void  GPU_WORD_mul_mod(BN_PART *A, BN_PART *B, BN_PART *N, BN_PART n0_inverse, BN_PART *result){
-   int j=threadIdx.x;
-   
-   __shared__ BN_PART M[WARP_SIZE]; 
-   __shared__ BN_PART U[WARP_SIZE]; 
-   __shared__ BN_PART V[WARP_SIZE]; 
-   __shared__ BN_PART C[WARP_SIZE]; 
-
-   BN_PART c;
-   
-   __shared__ BN_PART ONE[WARP_SIZE];
-   ONE[j]=0;
-   ONE[0]=1;
-
-   GPU_WORD_parallel_Mon(A,B,N,n0_inverse,M,U,V,C,result,j);
-
-   c=C[WARP_SIZE-1];
-
-   if(j==0){
-       GPU_WORD_delete_carry(result, N, c); 
-   }
-   __syncthreads();
-
-   GPU_WORD_parallel_Mon(result,ONE,N,n0_inverse,M,U,V,C,result,j);
-
-   c=C[WARP_SIZE-1];
-
-   if(j==0){
-       GPU_WORD_delete_carry(result, N, c); 
-   }
-   __syncthreads();
-
 }
 
 }

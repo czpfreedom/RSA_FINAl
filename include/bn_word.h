@@ -42,7 +42,7 @@ public:
 
     __host__ __device__ int setzero();
     __host__ __device__ int setone();
-    __host__ __device__ int setR();
+    __host__ __device__ int setR(int top);
 
     __host__ __device__ int print();
 

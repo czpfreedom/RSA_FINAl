@@ -8,9 +8,13 @@
 
 namespace namespace_rsa_final{
 
+/*	
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+*/
 
 BN_WORD :: BN_WORD(){
     memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
@@ -71,11 +75,11 @@ int BN_WORD:: setone(){
     return 1;
 }
 
-int BN_WORD:: setR(){
+int BN_WORD:: setR(int top){
     memset(m_data,0,BN_WORD_LENGTH_MAX*sizeof(BN_PART));
-    m_data[32]=1;
+    m_data[top-1]=1;
     m_neg=0;
-    m_top=33;
+    m_top=top;
     return 1;
 }
 
@@ -117,10 +121,13 @@ int BN_WORD:: Str_2_BN_WORD(std::string str){
     m_top=top;
     return 1;
 }
+/*
 
 #ifdef __cplusplus
 }
 #endif
+
+*/
 
 int BN_mod_exp_cpp(BN_WORD rr,  BN_WORD a,  BN_WORD p,  BN_WORD m){
 /*

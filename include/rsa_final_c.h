@@ -50,7 +50,7 @@ public:
 
     int setzero();
     int setone();
-    int setR();
+    int setR(int top);
     int check_top();
 
     int print();   
