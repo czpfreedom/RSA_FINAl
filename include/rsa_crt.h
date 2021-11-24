@@ -13,6 +13,7 @@ __global__ void GPU_WORD_mod_mul( BN_PART *A, BN_PART *B , BN_PART *N , BN_PART 
 
 __global__ void GPU_WORD_mod_exp( BN_PART *A, BN_PART *E , int E_bits, BN_PART *mR, BN_PART *N , BN_PART n0_inverse, BN_PART *result);
 
+__global__ void GPU_WORD_ARRAY_mod_exp( BN_PART *A, BN_PART *E , int E_bits, BN_PART *mR, BN_PART *N , BN_PART n0_inverse, BN_PART *result);
 }
 
 #endif

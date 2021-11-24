@@ -53,6 +53,9 @@ clean:  clean_test_bn_part clean_test_bn_word clean_test_crt_mod_exp clean_test_
 	rm -f $(DIR_LIB)/*.o
 	rm -f $(DIR_LIB)/*.a
 
+clean_log:
+	rm -f $(RSA_PATH)/log/*.log
+
 clean_test_bn_part :
 	rm -f $(TEST_BN_PART)/*.o
 	rm -f $(TEST_BN_PART)/test_bn_part
@@ -63,6 +66,7 @@ clean_test_bn_word :
 
 clean_test_crt_mod_exp :
 	rm -f $(TEST_CRT_MOD_EXP)/*.o
+	rm -f $(TEST_CRT_MOD_EXP)/test_crt_mod_mul
 	rm -f $(TEST_CRT_MOD_EXP)/test_crt_mod_exp
 
 clean_test_rns_mod_exp :

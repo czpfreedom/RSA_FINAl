@@ -19,12 +19,10 @@ __device__ int  GPU_WORD_parallel_Mon(BN_PART *A, BN_PART *B, BN_PART *N, BN_PAR
         BN_PART_mad_lo(p_a,p_b,p_v,ptemp_u,p_v);
         p_u=ptemp_u+p_u;
         BN_PART_mul_lo(p_v,n0_inverse,M[thread_id]);
-//        __syncthreads();
         p_m=M[0];
         BN_PART_mad_lo(p_n,p_m,p_v,ptemp_u,p_v);
         p_u=ptemp_u+p_u;
         V[thread_id]=p_v;
-//        __syncthreads();
         p_v=V[int_mod(thread_id+1,WARP_SIZE)];
         p_v=p_u+p_v;
         if(p_v<p_u){
@@ -40,7 +38,6 @@ __device__ int  GPU_WORD_parallel_Mon(BN_PART *A, BN_PART *B, BN_PART *N, BN_PAR
     }
     C[thread_id]=p_u;
     U[thread_id]=p_u;
-//    __syncthreads();
     while(BN_PART_any(U,WARP_SIZE)==0){
         p_u=U[int_mod(thread_id-1,WARP_SIZE)];
         if(thread_id==0){
@@ -55,7 +52,6 @@ __device__ int  GPU_WORD_parallel_Mon(BN_PART *A, BN_PART *B, BN_PART *N, BN_PAR
         }
         C[thread_id]=C[thread_id]+p_u;
         U[thread_id]=p_u;
-//        __syncthreads();
     }
     result[thread_id]=p_v;
 
@@ -114,88 +110,179 @@ __global__ void GPU_WORD_mod_exp( BN_PART *A, BN_PART *E , int E_bits, BN_PART *
     int i=threadIdx.x/WARP_SIZE;
     int j=threadIdx.x%WARP_SIZE;
 
-   __shared__ BN_PART M1[WARP_SIZE];
-   __shared__ BN_PART U1[WARP_SIZE];
-   __shared__ BN_PART V1[WARP_SIZE];
-   __shared__ BN_PART C1[WARP_SIZE];
+    __shared__ BN_PART M1[WARP_SIZE];
+    __shared__ BN_PART U1[WARP_SIZE];
+    __shared__ BN_PART V1[WARP_SIZE];
+    __shared__ BN_PART C1[WARP_SIZE];
 
-   __shared__ BN_PART M2[WARP_SIZE];
-   __shared__ BN_PART U2[WARP_SIZE];
-   __shared__ BN_PART V2[WARP_SIZE];
-   __shared__ BN_PART C2[WARP_SIZE];
+    __shared__ BN_PART M2[WARP_SIZE];
+    __shared__ BN_PART U2[WARP_SIZE];
+    __shared__ BN_PART V2[WARP_SIZE];
+    __shared__ BN_PART C2[WARP_SIZE];
 
-   __shared__ BN_PART R[WARP_SIZE];
-   __shared__ BN_PART ONE[WARP_SIZE];
-   __shared__ BN_PART S1[WARP_SIZE];
-   __shared__ BN_PART S2[WARP_SIZE];
-   __shared__ BN_PART S3[WARP_SIZE];
+    __shared__ BN_PART R[WARP_SIZE];
+    __shared__ BN_PART ONE[WARP_SIZE];
+    __shared__ BN_PART S1[WARP_SIZE];
+    __shared__ BN_PART S2[WARP_SIZE];
+    __shared__ BN_PART S3[WARP_SIZE];
 
-   __shared__ BN_PART R2[WARP_SIZE];
+    __shared__ BN_PART R2[WARP_SIZE];
 
-   int k,k_i,k_j;
+    int k,k_i,k_j;
    
-   if(i==0){
-       ONE[j]=0;
-       ONE[0]=1;   
-   }
-   else{
-       R[j]=mR[j];
-   }
+    if(i==0){
+        ONE[j]=0;
+ 	ONE[0]=1;   
+    }
+    else{
+        R[j]=mR[j];
+    }
 
-   __syncthreads();
+    __syncthreads();
 
-   if(i==0){
-       S1[j]=A[j];
-   }
-   else{
-       S2[j]=A[j];
-   }
+    if(i==0){
+        S1[j]=A[j];
+    }
+    else{
+        S2[j]=A[j];
+    }
 
-   __syncthreads();
+    __syncthreads();
 
    
-   for(k=0;k<E_bits; k++){
-       k_i=k/(sizeof(BN_PART)*8);
-       k_j=k%(sizeof(BN_PART)*8);
-       if(i==0){
-	       GPU_WORD_parallel_Mon(R,S1,N,n0_inverse,M1,U1,V1,C1,R2,j);
-       }
-       else{
-	       GPU_WORD_parallel_Mon(S2,S2,N,n0_inverse,M2,U2,V2,C2,S3,j);
-       }
-       __syncthreads();   
-       if(i==0){
-	       if(j==WARP_SIZE-1){
-		   GPU_WORD_delete_carry(R2, N, C1[j]);
-	       }
-       }
-       else{
-	       if(j==WARP_SIZE-1){
-		   GPU_WORD_delete_carry(S3, N, C2[j]);
-	       }       
-       }
-       __syncthreads();
-       if(i==0){
-           if(BN_PART_get_bit(E[k_i],k_j)==1){
-	       R[j]=R2[j];
-	   }
-       }
-       else{
-           S2[j]=S3[j];
-       }
-       __syncthreads();   
-//       if(i==0){
-	   S1[j]=S2[j];
-//       }
-       __syncthreads();   
-   }
+    for(k=0;k<E_bits; k++){
+        k_i=k/(sizeof(BN_PART)*8);
+        k_j=k%(sizeof(BN_PART)*8);
+        if(i==0){
+	    GPU_WORD_parallel_Mon(R,S1,N,n0_inverse,M1,U1,V1,C1,R2,j);
+ 	}
+ 	else{
+ 	    GPU_WORD_parallel_Mon(S2,S2,N,n0_inverse,M2,U2,V2,C2,S3,j);
+ 	}
+ 	__syncthreads();   
+ 	if(i==0){
+ 	    if(j==WARP_SIZE-1){
+ 	        GPU_WORD_delete_carry(R2, N, C1[j]);
+	    }
+ 	}
+ 	else{
+ 	    if(j==WARP_SIZE-1){
+ 	        GPU_WORD_delete_carry(S3, N, C2[j]);
+	    }       
+ 	}
+ 	__syncthreads();
+ 	if(i==0){
+            if(BN_PART_get_bit(E[k_i],k_j)==1){
+     	        R[j]=R2[j];
+ 	    }
+ 	}
+ 	else{
+            S2[j]=S3[j];
+ 	}
+ 	__syncthreads();   
+	S1[j]=S2[j];
+	__syncthreads();   
+    }
 
-   if(i==0){
-       GPU_WORD_parallel_Mon(R,ONE,N,n0_inverse,M1,U1,V1,C1,result,j);
-       if(j==WARP_SIZE-1){
-	   GPU_WORD_delete_carry(result, N, C1[j]);
-       }
-   }
+    if(i==0){
+        GPU_WORD_parallel_Mon(R,ONE,N,n0_inverse,M1,U1,V1,C1,R2,j);
+        if(j==WARP_SIZE-1){
+	    GPU_WORD_delete_carry(R2, N, C1[j]);
+ 	}
+	result[j]=R2[j];
+    }
 }
+
+__global__ void GPU_WORD_ARRAY_mod_exp( BN_PART *A, BN_PART *E , int E_bits, BN_PART *mR, BN_PART *N , BN_PART n0_inverse, BN_PART *result){
+
+    int bid=blockIdx.x;
+    int i=threadIdx.x/WARP_SIZE;
+    int j=threadIdx.x%WARP_SIZE;
+
+    __shared__ BN_PART M1[WARP_SIZE];
+    __shared__ BN_PART U1[WARP_SIZE];
+    __shared__ BN_PART V1[WARP_SIZE];
+    __shared__ BN_PART C1[WARP_SIZE];
+
+    __shared__ BN_PART M2[WARP_SIZE];
+    __shared__ BN_PART U2[WARP_SIZE];
+    __shared__ BN_PART V2[WARP_SIZE];
+    __shared__ BN_PART C2[WARP_SIZE];
+
+    __shared__ BN_PART R[WARP_SIZE];
+    __shared__ BN_PART ONE[WARP_SIZE];
+    __shared__ BN_PART S1[WARP_SIZE];
+    __shared__ BN_PART S2[WARP_SIZE];
+    __shared__ BN_PART S3[WARP_SIZE];
+
+    __shared__ BN_PART R2[WARP_SIZE];
+
+    int k,k_i,k_j;
+   
+    if(i==0){
+        ONE[j]=0;
+ 	ONE[0]=1;   
+    }
+    else{
+        R[j]=mR[j];
+    }
+
+    __syncthreads();
+
+    if(i==0){
+        S1[j]=A[bid*WARP_SIZE+j];
+    }
+    else{
+        S2[j]=A[bid*WARP_SIZE+j];
+    }
+
+    __syncthreads();
+
+   
+    for(k=0;k<E_bits; k++){
+        k_i=k/(sizeof(BN_PART)*8);
+        k_j=k%(sizeof(BN_PART)*8);
+        if(i==0){
+	    GPU_WORD_parallel_Mon(R,S1,N,n0_inverse,M1,U1,V1,C1,R2,j);
+ 	}
+ 	else{
+ 	    GPU_WORD_parallel_Mon(S2,S2,N,n0_inverse,M2,U2,V2,C2,S3,j);
+ 	}
+ 	__syncthreads();   
+ 	if(i==0){
+ 	    if(j==WARP_SIZE-1){
+ 	        GPU_WORD_delete_carry(R2, N, C1[j]);
+	    }
+ 	}
+ 	else{
+ 	    if(j==WARP_SIZE-1){
+ 	        GPU_WORD_delete_carry(S3, N, C2[j]);
+	    }       
+ 	}
+ 	__syncthreads();
+ 	if(i==0){
+            if(BN_PART_get_bit(E[k_i],k_j)==1){
+     	        R[j]=R2[j];
+ 	    }
+ 	}
+ 	else{
+            S2[j]=S3[j];
+ 	}
+ 	__syncthreads();   
+	S1[j]=S2[j];
+	__syncthreads();   
+    }
+
+    if(i==0){
+        GPU_WORD_parallel_Mon(R,ONE,N,n0_inverse,M1,U1,V1,C1,R2,j);
+        if(j==WARP_SIZE-1){
+	    GPU_WORD_delete_carry(R2, N, C1[j]);
+ 	}
+        result[bid*WARP_SIZE+j]=R2[j];
+    }
+
+}
+
+
 
 }

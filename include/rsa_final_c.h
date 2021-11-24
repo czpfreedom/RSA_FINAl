@@ -1,7 +1,7 @@
 #ifndef RSA_FINAL_C_H
 #define RSA_FINAL_C_H
 
-#include "config.h"
+#include "rsa_config.h"
 #include "string.h"
 #include "iostream"
 
@@ -60,12 +60,12 @@ public:
 
 };
 
-int BN_mod_exp_cuda(BN_WORD &rr, BN_WORD &a, BN_WORD &p,BN_WORD &m);
-
+int BN_mod_exp_cuda(BN_WORD &rr, BN_WORD a, BN_WORD e , BN_WORD n);
 
 #ifdef __cplusplus
 }
 #endif
+
 
 }
 #endif

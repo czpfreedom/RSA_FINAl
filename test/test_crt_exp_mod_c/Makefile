@@ -1,10 +1,7 @@
 include ../../Makefile
 
-test_crt_exp_mod_c : bn_openssl.o test_crt_exp_mod_c.o $(RSA_LIB)
-	$(CC)  $^ -o $@ $(INC)   $(LIB)
+test_crt_mod_exp_c : test_crt_mod_exp_c.o $(RSA_LIB)
+	$(CXX)  $^ -o $@ $(INC)   $(LIB)
 
-bn_openssl.o : bn_openssl.cpp
+test_crt_mod_exp_c.o : test_crt_mod_exp_c.cpp
 	$(CXX) -c  $< $(INC) -o $@
-
-test_crt_exp_mod_c.o : test_crt_exp_mod_c.c
-	$(CC) -c  $< $(INC) -o $@

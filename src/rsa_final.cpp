@@ -121,6 +121,16 @@ int BN_WORD:: Str_2_BN_WORD(std::string str){
     m_top=top;
     return 1;
 }
+
+int BN_mod_exp_cuda(BN_WORD &rr,  BN_WORD a, BN_WORD e, BN_WORD n){
+// log    
+    RSA_N rsa_n;
+    rsa_n.m_n=n;
+    CRT_N crt_n = * new CRT_N(rsa_n);
+    crt_n.CRT_MOD_EXP(a,e,rr);
+    return 1;
+}
+
 /*
 
 #ifdef __cplusplus
@@ -129,19 +139,6 @@ int BN_WORD:: Str_2_BN_WORD(std::string str){
 
 */
 
-int BN_mod_exp_cpp(BN_WORD rr,  BN_WORD a,  BN_WORD p,  BN_WORD m){
-/*
-    RSA_N rsa_n(m);
-    CRT_N crt_n(rsa_n);
-    crt_n.CRT_EXP_MOD_PARALL(a, p, rr);
-    return 1;
-*/
-}
 
-int BN_mod_exp_cuda(BN_WORD rr,  BN_WORD a, BN_WORD p, BN_WORD m){
-// log    
-    BN_mod_exp_cpp(rr, a, p, m);
-    return 1;
-}
 
 }

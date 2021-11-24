@@ -12,3 +12,9 @@ test_crt_mod_exp : test_crt_mod_exp.o  $(RSA_LIB)
 
 test_crt_mod_exp.o : test_crt_mod_exp.cpp
 	$(CXX) -c $< $(INC) -o $@
+
+test_crt_mod_exp_array : test_crt_mod_exp_array.o $(RSA_LIB)
+	$(CXX)  $^ -o $@ $(INC)   $(LIB)
+
+test_crt_mod_exp_array.o :test_crt_mod_exp_array.cpp 
+	$(CXX) -c $< $(INC) -o $@

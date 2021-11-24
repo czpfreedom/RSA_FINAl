@@ -14,7 +14,7 @@ int main(){
 
     BIGNUM *open_a, *open_e, *open_n, *open_result;
     BN_CTX *ctx;
-    BN_WORD bn_a,bn_e, bn_result, bn_open_result;
+    BN_WORD bn_a,bn_e, bn_n, bn_result, bn_open_result;
     RSA_N rsa_n;
 
     open_a=BN_new();
@@ -35,13 +35,13 @@ int main(){
         BN_WORD_openssl_transform(open_a,bn_a);
         BN_WORD_openssl_transform(open_e,bn_e);
 
-        RSA_N rsa_n2=rsa_n;
-        CRT_N crt_n ;
-        crt_n = *new CRT_N (rsa_n);
+	bn_n=rsa_n.m_n;
+        CRT_N *crt_n ;
+        crt_n = new CRT_N (rsa_n);
 
         BN_mod_exp(open_result, open_a, open_e, open_n, ctx);
 
-        crt_n.CRT_MOD_EXP(bn_a, bn_e, bn_result);
+	BN_mod_exp_cuda(bn_result, bn_a, bn_e, bn_n);
 	
 	BN_WORD_openssl_transform(open_result,bn_open_result);
 
