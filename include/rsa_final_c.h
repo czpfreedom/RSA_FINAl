@@ -1,11 +1,7 @@
 #ifndef RSA_FINAL_C_H
 #define RSA_FINAL_C_H
 
-#include "rsa_config.h"
-#include "string.h"
-#include "iostream"
-
-namespace namespace_rsa_final {
+#include "rsa_config_c.h"
 
 #ifdef __cplusplus
 extern "C" { 
@@ -21,51 +17,23 @@ extern "C" {
 
 /***** BIGNUM **********************************/
 
-
-class BN_WORD{
-
-public:
-
+typedef struct bn_word_c_st{
     BN_PART m_data[BN_WORD_LENGTH_MAX];
     int m_neg;
     int m_top;
 
-    BN_WORD();
-    BN_WORD(BN_WORD &bn_word);
-    BN_WORD& operator=(BN_WORD &bn_word);
-    ~BN_WORD();
+}BN_WORD_C;
 
-    BN_WORD& operator+ (BN_WORD &bw);
-    BN_WORD& operator- (BN_WORD &bw);
-    BN_WORD& operator* (BN_WORD &bw);
-    BN_WORD& operator/ (BN_WORD &bw);
-    BN_WORD& operator% (BN_WORD &bw);
+BN_WORD_C* BN_WORD_C_new(int top, int neg);
 
-    bool operator==(BN_WORD &bw_2);
-    bool operator!=(BN_WORD &bw_2);
-    bool operator> (BN_WORD &bw_2);
-    bool operator< (BN_WORD &bw_2);
-    bool operator>=(BN_WORD &bw_2);
-    bool operator<=(BN_WORD &bw_2);
+int BN_WORD_C_free(BN_WORD_C *bw_c);
 
-    int setzero();
-    int setone();
-    int setR(int top);
-    int check_top();
+int BN_WORD_C_setzero(BN_WORD_C *bw_c);
 
-    int print();   
-
-    int BN_WORD_2_Str(std:: string &str);
-    int Str_2_BN_WORD(std:: string str);
-
-};
-
-int BN_mod_exp_cuda(BN_WORD &rr, BN_WORD a, BN_WORD e , BN_WORD n);
+int BN_mod_exp_cuda_c(BN_WORD_C *rr, BN_WORD_C *a, BN_WORD_C *e , BN_WORD_C *n);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-}
 #endif

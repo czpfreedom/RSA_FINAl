@@ -1,10 +1,55 @@
 #ifndef RSA_H
 #define RSA_H
 
+#include "rsa_config.h"
 #include "rsa_final_c.h"
 #include "rsa_final_log.h"
+#include "iostream"
+#include "string.h"
 
 namespace namespace_rsa_final{
+
+/***** BIGNUM **********************************/
+
+class BN_WORD{
+
+public:
+
+    BN_PART m_data[BN_WORD_LENGTH_MAX];
+    int m_neg;
+    int m_top;
+
+    BN_WORD();
+    BN_WORD(BN_WORD &bn_word);
+    BN_WORD& operator=(BN_WORD &bn_word);
+    ~BN_WORD();
+
+    BN_WORD& operator+ (BN_WORD &bw);
+    BN_WORD& operator- (BN_WORD &bw);
+    BN_WORD& operator* (BN_WORD &bw);
+    BN_WORD& operator/ (BN_WORD &bw);
+    BN_WORD& operator% (BN_WORD &bw);
+
+    bool operator==(BN_WORD &bw_2);
+    bool operator!=(BN_WORD &bw_2);
+    bool operator> (BN_WORD &bw_2);
+    bool operator< (BN_WORD &bw_2);
+    bool operator>=(BN_WORD &bw_2);
+    bool operator<=(BN_WORD &bw_2);
+
+    int setzero();
+    int setone();
+    int setR(int top);
+    int check_top();
+
+    int print();
+
+    int BN_WORD_2_Str(std:: string &str);
+    int Str_2_BN_WORD(std:: string str);
+    int BN_WORD_2_BN_WORD_C(BN_WORD_C *bw_c);
+    int BN_WORD_C_2_BN_WORD(BN_WORD_C *bw_c);
+
+};
 
 /***** BN_WORD_ARRAY ****************************/
 class BN_WORD_ARRAY{
@@ -108,6 +153,9 @@ public:
 };
 */
 /************************************************/
+
+int BN_mod_exp_cuda(BN_WORD &rr,  BN_WORD a, BN_WORD e, BN_WORD n);
+
 
 }
 
