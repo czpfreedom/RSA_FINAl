@@ -4,7 +4,7 @@
 #include "bn/bn_lcl.h"
 #include <iomanip>
 
-#define DMAX 32
+#define DMAX 16
 #define LOOP_NUM 32
 
 
@@ -51,22 +51,27 @@ int main(){
         }
 	else{
 	    printf("a:\n");
-	    for(int j=31;j>=0;j--){
+	    for(int j=DMAX-1;j>=0;j--){
 	        std::cout<<std::hex<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<bn_a.m_data[j];
 	    }
 	    std::cout<<std::endl;
 	    printf("e:\n");
-	    for(int j=31;j>=0;j--){
+	    for(int j=DMAX-1;j>=0;j--){
 	        std::cout<<std::hex<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<bn_e.m_data[j];
 	    }
 	    std::cout<<std::endl;
 	    printf("n:\n");
-	    for(int j=31;j>=0;j--){
+	    for(int j=DMAX-1;j>=0;j--){
 	        std::cout<<std::hex<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<rsa_n.m_n.m_data[j];
 	    }
 	    std::cout<<std::endl;
-	    printf("result:\n");
-	    for(int j=31;j>=0;j--){
+	    printf("open_result:\n");
+	    for(int j=DMAX-1;j>=0;j--){
+	        std::cout<<std::hex<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<bn_open_result.m_data[j];
+	    }
+	    std::cout<<std::endl;
+	    printf("bn_result:\n");
+	    for(int j=DMAX-1;j>=0;j--){
 	        std::cout<<std::hex<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<bn_result.m_data[j];
 	    }
 	    std::cout<<std::endl;

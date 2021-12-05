@@ -53,6 +53,8 @@ int CRT_N :: CRT_MOD_MUL(BN_WORD a, BN_WORD b, BN_WORD &result){
     BN_WORD aR, bR;
     aR=(a*m_R)%m_rsa_n.m_n;
     bR=(b*m_R)%m_rsa_n.m_n;
+
+    int n_top=m_rsa_n.m_n.m_top;
    
     BN_PART *bp_a, *bp_b, *bp_n, *bp_result;
     cudaMallocManaged((void**)&(bp_a),WARP_SIZE*sizeof(BN_PART));
@@ -69,12 +71,12 @@ int CRT_N :: CRT_MOD_MUL(BN_WORD a, BN_WORD b, BN_WORD &result){
     memcpy(bp_b,bR.m_data,bR.m_top*sizeof(BN_PART));
     memcpy(bp_n,m_rsa_n.m_n.m_data,m_rsa_n.m_n.m_top*sizeof(BN_PART));
     
-    GPU_WORD_mod_mul<<<1,WARP_SIZE>>>(bp_a,bp_b,bp_n,m_n0_inverse,bp_result);
+    GPU_WORD_mod_mul<<<1,WARP_SIZE>>>(bp_a,bp_b,bp_n,m_n0_inverse,bp_result, n_top);
     cudaDeviceSynchronize();
 
     result.setzero(); 
-    memcpy(result.m_data,bp_result,WARP_SIZE*sizeof(BN_PART));
-    result.m_top=WARP_SIZE;
+    memcpy(result.m_data,bp_result,n_top*sizeof(BN_PART));
+    result.check_top();
 
     log_info(CRT_MOD_MUL_LOG,a,b,result);
 
@@ -88,6 +90,8 @@ int CRT_N :: CRT_MOD_MUL(BN_WORD a, BN_WORD b, BN_WORD &result){
 int CRT_N :: CRT_MOD_EXP(BN_WORD a, BN_WORD e, BN_WORD &result){
     BN_WORD aR;
     aR=(a*m_R)%m_rsa_n.m_n;
+
+    int n_top=m_rsa_n.m_n.m_top;
    
     BN_PART *bp_a,*bp_e,*bp_r,*bp_n,*bp_result;
     int E_bits=e.m_top*sizeof(BN_PART)*8;
@@ -109,12 +113,11 @@ int CRT_N :: CRT_MOD_EXP(BN_WORD a, BN_WORD e, BN_WORD &result){
     memcpy(bp_n,m_rsa_n.m_n.m_data,m_rsa_n.m_n.m_top*sizeof(BN_PART));
     memcpy(bp_r,m_R.m_data,m_R.m_top*sizeof(BN_PART));
 
-    GPU_WORD_mod_exp<<<1,WARP_SIZE*2>>>(bp_a,bp_e,E_bits,bp_r,bp_n,m_n0_inverse,bp_result);
+    GPU_WORD_mod_exp<<<1,WARP_SIZE*2>>>(bp_a,bp_e,E_bits,bp_r,bp_n,m_n0_inverse,bp_result, n_top);
     cudaDeviceSynchronize();
 
     result.setzero(); 
-    memcpy(result.m_data,bp_result,WARP_SIZE*sizeof(BN_PART));
-    result.m_top=WARP_SIZE;
+    memcpy(result.m_data,bp_result,n_top*sizeof(BN_PART));
     result.check_top();
 
     log_info(CRT_MOD_EXP_LOG,a,e,result);
@@ -136,6 +139,7 @@ int CRT_N :: CRT_MOD_EXP_ARRAY(BN_WORD_ARRAY a, BN_WORD e, BN_WORD_ARRAY &result
 
     BN_PART *bp_a,*bp_e,*bp_r,*bp_n,*bp_result;
     int E_bits=e.m_top*sizeof(BN_PART)*8;
+    int n_top=m_rsa_n.m_n.m_top;
 
     cudaMallocManaged((void**)&(bp_a),bn_word_num*WARP_SIZE*sizeof(BN_PART));
     cudaMallocManaged((void**)&(bp_e),WARP_SIZE*sizeof(BN_PART));
@@ -156,13 +160,12 @@ int CRT_N :: CRT_MOD_EXP_ARRAY(BN_WORD_ARRAY a, BN_WORD e, BN_WORD_ARRAY &result
     memcpy(bp_n,m_rsa_n.m_n.m_data,m_rsa_n.m_n.m_top*sizeof(BN_PART));
     memcpy(bp_r,m_R.m_data,m_R.m_top*sizeof(BN_PART));
 
-    GPU_WORD_ARRAY_mod_exp<<<bn_word_num,WARP_SIZE*2>>>(bp_a,bp_e,E_bits,bp_r,bp_n,m_n0_inverse,bp_result);
+    GPU_WORD_ARRAY_mod_exp<<<bn_word_num,WARP_SIZE*2>>>(bp_a,bp_e,E_bits,bp_r,bp_n,m_n0_inverse,bp_result,n_top);
     cudaDeviceSynchronize();
 
     for(int i=0;i<bn_word_num;i++){
         result.m_bn_word[i].setzero();    
-	memcpy(result.m_bn_word[i].m_data,bp_result+i*WARP_SIZE,WARP_SIZE*sizeof(BN_PART));
-        result.m_bn_word[i].m_top=WARP_SIZE;
+	memcpy(result.m_bn_word[i].m_data,bp_result+i*WARP_SIZE,n_top*sizeof(BN_PART));
     	result.m_bn_word[i].check_top();
     }
 

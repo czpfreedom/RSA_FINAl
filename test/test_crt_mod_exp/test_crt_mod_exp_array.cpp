@@ -4,8 +4,8 @@
 #include "bn/bn_lcl.h"
 #include <iomanip>
 
-#define WORD_NUM 1024
-#define DMAX 32
+#define WORD_NUM 32
+#define DMAX 16
 
 using namespace namespace_rsa_final;
 

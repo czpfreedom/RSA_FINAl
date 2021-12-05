@@ -2,7 +2,7 @@
 #include "openssl/bn.h"
 #include "bn/bn_lcl.h"
 
-#define DMAX 32
+#define DMAX 16
 #define LOOP_NUM 32
 
 #ifdef BN_PART_32
@@ -114,6 +114,7 @@ int main(){
     bn_e=BN_WORD_C_new(DMAX,0);
     bn_n=BN_WORD_C_new(DMAX,0);
     bn_result=BN_WORD_C_new(DMAX,0);
+    
 
     BN_rand(open_a,DMAX*sizeof(BN_PART)*8,0,0);
     BN_rand(open_e,DMAX*sizeof(BN_PART)*8,0,0);
@@ -121,6 +122,7 @@ int main(){
     BN_generate_prime_ex(open_q,DMAX*sizeof(BN_PART)*4,0,NULL,NULL,NULL);
     BN_mul(open_n,open_p,open_q,ctx);
 
+    printf("1\n");
 //    BN_WORD_openssl_prime_generation(rsa_n,DMAX*sizeof(BN_PART)*8);
 
     BN_WORD_C_openssl_transform(open_a,bn_a);
