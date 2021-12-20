@@ -30,6 +30,8 @@ int BN_WORD_C_free(BN_WORD_C *bw_c);
 
 int BN_WORD_C_setzero(BN_WORD_C *bw_c);
 
+int BN_WORD_C_check_top(BN_WORD_C *bw_c);
+
 int BN_mod_exp_cuda_c(BN_WORD_C *rr, BN_WORD_C *a, BN_WORD_C *e , BN_WORD_C *n);
 
 #ifdef __cplusplus

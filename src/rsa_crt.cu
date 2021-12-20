@@ -127,6 +127,7 @@ int CRT_N :: CRT_MOD_EXP(BN_WORD a, BN_WORD e, BN_WORD &result){
     cudaFree(bp_n);
     cudaFree(bp_r);
     cudaFree(bp_result);
+
     return 1;
 }
 

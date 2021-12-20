@@ -5,8 +5,7 @@
 #include <iomanip>
 
 #define DMAX 16
-#define LOOP_NUM 128
-
+#define LOOP_NUM 2
 
 using namespace namespace_rsa_final;
 
@@ -44,14 +43,15 @@ int main(){
         crt_n.CRT_MOD_MUL(bn_a, bn_b, bn_result);
 	
 	BN_WORD_openssl_transform(open_result,bn_open_result);
-
+/*
         if(bn_result==bn_open_result){
                 sum=sum+1;
         }
 	else{
+*/
 	    printf("a:\n");
 	    for(int j=DMAX-1;j>=0;j--){
-	        std::cout<<std::hex<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<bn_a.m_data[j];
+	        std::cout<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<std::hex<<bn_a.m_data[j];
 	    }
 	    std::cout<<std::endl;
 	    printf("b:\n");
@@ -74,7 +74,7 @@ int main(){
 	        std::cout<<std::hex<<std::setw(sizeof(BN_PART)*2)<<std::setfill('0')<<bn_result.m_data[j];
 	    }
 	    std::cout<<std::endl;
-	}
+//	}
     }
     std:: cout<<"test_crt_mul_mod:"<<std:: endl;
     std:: cout<<"total:"<< LOOP_NUM<<", right:"<<sum<<std:: endl;

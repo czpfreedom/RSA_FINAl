@@ -34,6 +34,7 @@ int CRT_N :: log_info(LOG_TYPE log_type, BN_WORD a, BN_WORD b, BN_WORD r){
         b.BN_WORD_2_Str(str_b);
         m_rsa_n.m_n.BN_WORD_2_Str(str_n);
         r.BN_WORD_2_Str(str_r);
+	std::cout<<str_a<<std::endl;
         snprintf(log_info_data, LOG_INFO_LENGTH_MAX, "  Operation:CRT_MOD_MUL\n  bn_a:%s\n\n  bn_b:%s\n\n  bn_n:%s\n\n  bn_result:%s\n\n -----------------------------------------\n\n", str_a.c_str(), str_b.c_str(), str_n.c_str(), str_r.c_str());
         LOG_INFO( log_file, time_stamp, log_info_data);
         fclose(log_file);

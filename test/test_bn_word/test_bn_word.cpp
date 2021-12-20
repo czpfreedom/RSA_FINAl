@@ -104,8 +104,8 @@ int main(){
 
     sum=0;
     for (int i=0;i<LOOP_NUM;i++){
-	BN_rand(open_a,DMAX*sizeof(BN_PART)*8,0,0);
-	BN_rand(open_b,i,0,0);
+	BN_rand(open_a,i,0,0);
+	BN_rand(open_b,DMAX*sizeof(BN_PART)*8,0,0);
 
 	BN_WORD_openssl_transform(open_a,bn_a);
 	BN_WORD_openssl_transform(open_b,bn_b);
